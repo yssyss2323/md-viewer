@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self' file:; script-src 'self' file:; style-src 'self' file: 'unsafe-inline'; img-src 'self' file: data: https: http:; font-src 'self' file: data:;" />
+  <title>MD Viewer</title>
+  <link rel="stylesheet" href="../node_modules/katex/dist/katex.min.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-theme="light">
+
+  <header id="titlebar">
+    <div class="tb-left">
+      <button class="tb-btn" id="btn-sidebar" title="목차 (Ctrl+B)">
+        <svg viewBox="0 0 16 16" width="15" height="15"><path fill="currentColor" d="M2 3.5c0-.3.2-.5.5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5Zm3 4c0-.3.2-.5.5-.5h8a.5.5 0 0 1 0 1h-8a.5.5 0 0 1-.5-.5Zm-3 4c0-.3.2-.5.5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5Z"/></svg>
+      </button>
+      <span id="tb-title">MD Viewer</span>
+      <span id="tb-dot" class="hidden" title="파일이 변경되어 새로고침됨"></span>
+    </div>
+    <div class="tb-right">
+      <button class="tb-btn" id="btn-open" title="파일 열기 (Ctrl+O)">
+        <svg viewBox="0 0 16 16" width="15" height="15"><path fill="currentColor" d="M1.5 3A1.5 1.5 0 0 1 3 1.5h3.1c.4 0 .78.16 1.06.44l1 1c.1.1.22.15.35.15H13A1.5 1.5 0 0 1 14.5 4.6l-.02.15-1.2 7A1.5 1.5 0 0 1 11.8 13H3.5A2 2 0 0 1 1.5 11V3Zm1 3.5V11a1 1 0 0 0 1 1h.05L2.6 6.9a.5.5 0 0 1 .49-.4H2.5Zm.86 5.5h8.44a.5.5 0 0 0 .49-.42l1.13-6.58H4.14L3.36 12ZM3 2.5a.5.5 0 0 0-.5.5v2h10.29l.07-.4a.5.5 0 0 0-.49-.6H8.5c-.4 0-.78-.16-1.06-.44l-1-1a.5.5 0 0 0-.35-.15H3Z" opacity=".9"/></svg>
+      </button>
+      <button class="tb-btn" id="btn-search" title="찾기 (Ctrl+F)">
+        <svg viewBox="0 0 16 16" width="15" height="15"><path fill="currentColor" d="M11.7 10.3a5.5 5.5 0 1 0-1.4 1.4l2.65 2.65a1 1 0 0 0 1.4-1.4L11.7 10.3ZM7 11.5a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9Z" opacity=".9" fill-rule="evenodd"/></svg>
+      </button>
+      <button class="tb-btn" id="btn-pdf" title="PDF로 내보내기 (Ctrl+P)">
+        <svg viewBox="0 0 16 16" width="15" height="15"><path fill="currentColor" d="M8 1.5c.28 0 .5.22.5.5v6.79l2.15-2.14a.5.5 0 0 1 .7.7l-3 3a.5.5 0 0 1-.7 0l-3-3a.5.5 0 1 1 .7-.7L7.5 8.79V2c0-.28.22-.5.5-.5ZM3 10.5a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-2a.5.5 0 0 1 1 0v2A1.5 1.5 0 0 1 12 14.5H4A1.5 1.5 0 0 1 2.5 13v-2a.5.5 0 0 1 .5-.5Z"/></svg>
+      </button>
+      <button class="tb-btn" id="btn-theme" title="테마 전환 (Ctrl+Shift+L)">
+        <svg id="icon-moon" viewBox="0 0 16 16" width="15" height="15"><path fill="currentColor" d="M6.2 1.9a.4.4 0 0 1 .47.52A5.6 5.6 0 0 0 13.3 9.6a.4.4 0 0 1 .52.47A6.5 6.5 0 1 1 6.2 1.9Z"/></svg>
+        <svg id="icon-sun" viewBox="0 0 16 16" width="15" height="15" class="hidden"><path fill="currentColor" d="M8 1a.5.5 0 0 1 .5.5V3a.5.5 0 0 1-1 0V1.5A.5.5 0 0 1 8 1Zm0 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm0 2a.5.5 0 0 1 .5.5V15a.5.5 0 0 1-1 0v-1.5A.5.5 0 0 1 8 13Zm7-5a.5.5 0 0 1-.5.5H13a.5.5 0 0 1 0-1h1.5a.5.5 0 0 1 .5.5ZM3 8a.5.5 0 0 1-.5.5H1a.5.5 0 0 1 0-1h1.5A.5.5 0 0 1 3 8Zm9.66-4.95a.5.5 0 0 1 0 .7l-1.06 1.07a.5.5 0 1 1-.71-.71l1.06-1.06a.5.5 0 0 1 .71 0ZM5.11 11.6a.5.5 0 0 1 0 .7l-1.06 1.07a.5.5 0 0 1-.71-.71l1.06-1.06a.5.5 0 0 1 .71 0Zm7.55 1.77a.5.5 0 0 1-.71 0l-1.06-1.07a.5.5 0 0 1 .7-.7l1.07 1.06a.5.5 0 0 1 0 .7ZM5.11 4.4a.5.5 0 0 1-.7 0L3.33 3.35a.5.5 0 1 1 .71-.71L5.11 3.7a.5.5 0 0 1 0 .71Z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div id="find-bar" class="hidden">
+    <input id="find-input" type="text" placeholder="찾기…" spellcheck="false" />
+    <span id="find-count"></span>
+    <button class="tb-btn" id="find-prev" title="이전 (Shift+Enter)">
+      <svg viewBox="0 0 16 16" width="13" height="13"><path fill="currentColor" d="M8 5.3 3.65 9.65a.5.5 0 0 0 .7.7L8 6.71l3.65 3.64a.5.5 0 0 0 .7-.7L8 5.29Z"/></svg>
+    </button>
+    <button class="tb-btn" id="find-next" title="다음 (Enter)">
+      <svg viewBox="0 0 16 16" width="13" height="13"><path fill="currentColor" d="m8 10.7 4.35-4.35a.5.5 0 0 0-.7-.7L8 9.29 4.35 5.65a.5.5 0 1 0-.7.7L8 10.71Z"/></svg>
+    </button>
+    <button class="tb-btn" id="find-close" title="닫기 (Esc)">
+      <svg viewBox="0 0 16 16" width="13" height="13"><path fill="currentColor" d="M4.05 4.05a.5.5 0 0 1 .7 0L8 7.29l3.25-3.24a.5.5 0 1 1 .7.7L8.71 8l3.24 3.25a.5.5 0 0 1-.7.7L8 8.71l-3.25 3.24a.5.5 0 0 1-.7-.7L7.29 8 4.05 4.75a.5.5 0 0 1 0-.7Z"/></svg>
+    </button>
+  </div>
+
+  <div id="layout">
+    <aside id="sidebar" class="collapsed">
+      <div id="outline-header">목차</div>
+      <nav id="outline"></nav>
+    </aside>
+
+    <main id="content-scroll">
+      <div id="welcome">
+        <div class="welcome-inner">
+          <div class="welcome-logo">M↓</div>
+          <h1>MD Viewer</h1>
+          <p class="welcome-sub">마크다운 파일을 열거나 창으로 끌어다 놓으세요</p>
+          <button id="welcome-open">파일 열기 <kbd>Ctrl+O</kbd></button>
+          <div id="recent-section" class="hidden">
+            <div class="recent-title">최근 파일</div>
+            <ul id="recent-list"></ul>
+          </div>
+        </div>
+      </div>
+      <article id="content" class="markdown-body hidden"></article>
+    </main>
+  </div>
+
+  <footer id="statusbar" class="hidden">
+    <span id="status-path" title="클릭하면 폴더에서 보기"></span>
+    <span id="status-stats"></span>
+  </footer>
+
+  <div id="drop-overlay" class="hidden"><div>파일을 놓아서 열기</div></div>
+  <div id="toast" class="hidden"></div>
+
+  <script src="../node_modules/dompurify/dist/purify.min.js"></script>
+  <script src="../node_modules/mermaid/dist/mermaid.min.js"></script>
+  <script src="renderer.js"></script>
+</body>
+</html>

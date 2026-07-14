@@ -1,0 +1,73 @@
+{
+  "name": "mdviewr",
+  "productName": "MD Viewer",
+  "version": "1.0.0",
+  "description": "A clean, distraction-free markdown viewer",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win"
+  },
+  "keywords": [
+    "markdown",
+    "viewer"
+  ],
+  "author": "ysshim",
+  "license": "MIT",
+  "type": "commonjs",
+  "build": {
+    "appId": "kr.labq.mdviewer",
+    "productName": "MD Viewer",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "shortcutName": "MD Viewer"
+    },
+    "fileAssociations": [
+      {
+        "ext": "md",
+        "name": "Markdown",
+        "description": "Markdown 문서",
+        "role": "Viewer",
+        "icon": "build/icon.png"
+      },
+      {
+        "ext": "markdown",
+        "name": "Markdown",
+        "description": "Markdown 문서",
+        "role": "Viewer",
+        "icon": "build/icon.png"
+      }
+    ]
+  },
+  "devDependencies": {
+    "electron": "^43.1.0",
+    "electron-builder": "^26.15.3"
+  },
+  "dependencies": {
+    "dompurify": "^3.4.12",
+    "highlight.js": "^11.11.1",
+    "katex": "^0.17.0",
+    "markdown-it": "^14.3.0",
+    "markdown-it-task-lists": "^2.1.1",
+    "markdown-it-texmath": "^1.0.0",
+    "mermaid": "^11.16.0"
+  }
+}
