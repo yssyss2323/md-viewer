@@ -16,6 +16,8 @@
     statusbar: $('#statusbar'),
     statusPath: $('#status-path'),
     statusStats: $('#status-stats'),
+    sourceView: $('#source-view'),
+    editor: $('#source-editor'),
     findBar: $('#find-bar'),
     findInput: $('#find-input'),
     findCount: $('#find-count'),
@@ -28,10 +30,19 @@
   const state = {
     path: null,
     raw: null,
+    savedRaw: null,
+    modified: false,
+    sourceMode: false,
     theme: 'light',
     zoom: 0,
     sidebarOpen: false,
     headings: [],
+  };
+
+  // Allow local image URLs (mdimg:// scheme, see main.js) through sanitization.
+  const SANITIZE_OPTS = {
+    ALLOWED_URI_REGEXP:
+      /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp|file|mdimg|data):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
   };
 
   /* ---------- Helpers ---------- */
@@ -65,17 +76,31 @@
 
   /* ---------- Rendering ---------- */
 
-  async function display(path, content, { keepScroll = false } = {}) {
+  async function display(path, content, { keepScroll = false, fromDisk = true } = {}) {
     const prevScroll = el.scroll.scrollTop;
     state.path = path;
     state.raw = content;
+    if (fromDisk) {
+      state.savedRaw = content;
+      setModified(false);
+      if (state.sourceMode) setSourceMode(false, { applyEdits: false });
+    }
 
     const baseDir = window.api.dirname(path);
     const html = window.api.render(content, baseDir);
-    el.content.innerHTML = DOMPurify.sanitize(html);
+    el.content.innerHTML = DOMPurify.sanitize(html, SANITIZE_OPTS);
+
+    // Local images (relative paths, file: URLs) are inlined as data: URLs.
+    el.content.querySelectorAll('img').forEach((img) => {
+      const src = img.getAttribute('src');
+      if (src && !/^(https?:|data:)/i.test(src)) {
+        const dataUrl = window.api.imageDataUrl(src, baseDir);
+        if (dataUrl) img.setAttribute('src', dataUrl);
+      }
+    });
 
     el.welcome.classList.add('hidden');
-    el.content.classList.remove('hidden');
+    el.content.classList.toggle('hidden', state.sourceMode);
     el.statusbar.classList.remove('hidden');
 
     buildHeadings();
@@ -238,6 +263,7 @@
   /* ---------- File opening ---------- */
 
   async function openViaDialog() {
+    if (!confirmDiscard()) return;
     try {
       const res = await window.api.openDialog();
       if (res) await display(res.path, res.content);
@@ -247,6 +273,7 @@
   }
 
   async function openPath(p) {
+    if (!confirmDiscard()) return;
     try {
       const res = await window.api.openFile(p);
       await display(res.path, res.content);
@@ -308,6 +335,79 @@
     }
   });
 
+  /* ---------- Source mode / save ---------- */
+
+  let suppressWatch = 0;
+
+  function setModified(on) {
+    state.modified = on;
+    el.dot.classList.toggle('modified', on);
+    el.dot.title = on ? '저장되지 않은 변경 (Ctrl+S)' : '';
+  }
+
+  function setSourceMode(on, { applyEdits = true } = {}) {
+    if (on && !state.path) {
+      toast('먼저 파일을 열어주세요');
+      return;
+    }
+    if (on === state.sourceMode) return;
+    state.sourceMode = on;
+    $('#btn-source').classList.toggle('active', on);
+    if (on) {
+      el.editor.value = state.raw;
+      el.content.classList.add('hidden');
+      el.sourceView.classList.remove('hidden');
+      el.scroll.scrollTop = 0;
+      el.editor.focus();
+    } else {
+      el.sourceView.classList.add('hidden');
+      el.content.classList.remove('hidden');
+      if (applyEdits && el.editor.value !== state.raw) {
+        display(state.path, el.editor.value, { keepScroll: true, fromDisk: false });
+      }
+    }
+  }
+
+  el.editor.addEventListener('input', () => {
+    state.raw = el.editor.value;
+    setModified(state.raw !== state.savedRaw);
+  });
+
+  el.editor.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      el.editor.setRangeText('  ', el.editor.selectionStart, el.editor.selectionEnd, 'end');
+      el.editor.dispatchEvent(new Event('input'));
+    }
+  });
+
+  async function saveFile() {
+    if (!state.path) return;
+    if (!state.modified) {
+      toast('저장할 변경 사항이 없습니다');
+      return;
+    }
+    try {
+      suppressWatch++;
+      setTimeout(() => { suppressWatch = Math.max(0, suppressWatch - 1); }, 1500);
+      await window.api.saveFile(state.path, state.raw);
+      state.savedRaw = state.raw;
+      setModified(false);
+      if (!state.sourceMode) {
+        await display(state.path, state.raw, { keepScroll: true, fromDisk: false });
+      } else {
+        updateStats();
+      }
+      toast('저장됨');
+    } catch (err) {
+      toast(`저장 실패: ${err.message}`);
+    }
+  }
+
+  function confirmDiscard() {
+    return !state.modified || window.confirm('저장하지 않은 변경 사항이 있습니다. 버리고 계속할까요?');
+  }
+
   /* ---------- Sidebar / theme / zoom ---------- */
 
   function setSidebar(open) {
@@ -324,7 +424,7 @@
     if (persist) await window.api.setSettings({ theme });
     // Mermaid diagrams bake theme colors in — re-render the document if any exist.
     if (state.path && el.content.querySelector('.mermaid')) {
-      await display(state.path, state.raw, { keepScroll: true });
+      await display(state.path, state.raw, { keepScroll: true, fromDisk: false });
     }
   }
 
@@ -412,6 +512,7 @@
   $('#btn-open').addEventListener('click', openViaDialog);
   $('#welcome-open').addEventListener('click', openViaDialog);
   $('#btn-sidebar').addEventListener('click', () => setSidebar(!state.sidebarOpen));
+  $('#btn-source').addEventListener('click', () => setSourceMode(!state.sourceMode));
   $('#btn-search').addEventListener('click', () => (findOpen ? closeFind() : openFind()));
   $('#btn-theme').addEventListener('click', () =>
     setTheme(state.theme === 'dark' ? 'light' : 'dark')
@@ -426,6 +527,7 @@
       toast('먼저 파일을 열어주세요');
       return;
     }
+    if (state.sourceMode) setSourceMode(false);
     const name = window.api.basename(state.path).replace(/\.[^.]+$/, '') + '.pdf';
     toast('PDF 생성 중…', 8000);
     const res = await window.api.exportPdf(name);
@@ -455,6 +557,14 @@
       case 'b':
         e.preventDefault();
         setSidebar(!state.sidebarOpen);
+        break;
+      case 'e':
+        e.preventDefault();
+        setSourceMode(!state.sourceMode);
+        break;
+      case 's':
+        e.preventDefault();
+        saveFile();
         break;
       case 'p':
         e.preventDefault();
@@ -494,11 +604,25 @@
 
   /* ---------- Main-process events ---------- */
 
-  window.api.onOpenFile(({ path, content }) => display(path, content));
+  window.api.onOpenFile(({ path, content }) => {
+    if (!confirmDiscard()) return;
+    display(path, content);
+  });
 
   window.api.onFileChanged(({ path, content }) => {
     if (path !== state.path) return;
-    display(path, content, { keepScroll: true });
+    if (suppressWatch > 0) return;
+    if (state.modified) {
+      toast('파일이 디스크에서 변경되었지만, 저장하지 않은 편집이 있어 반영하지 않았습니다');
+      return;
+    }
+    if (state.sourceMode) {
+      el.editor.value = content;
+      state.raw = content;
+      state.savedRaw = content;
+    } else {
+      display(path, content, { keepScroll: true });
+    }
     el.dot.classList.add('flash');
     setTimeout(() => el.dot.classList.remove('flash'), 1200);
   });

@@ -17,7 +17,9 @@ You can also drag and drop a markdown file onto the window.
 
 ## Features
 
-- Clean read-only rendering with light / dark themes
+- Clean rendering with light / dark themes
+- Source view with inline editing — save with `Ctrl+S`
+- Local images (including relative paths and non-ASCII filenames) render inline
 - Outline sidebar with scroll-position highlighting
 - Syntax-highlighted code blocks with a copy button
 - Tables, task lists, and footnotes
@@ -34,6 +36,8 @@ You can also drag and drop a markdown file onto the window.
 | Open file | `Ctrl+O` |
 | Find | `Ctrl+F` (close with `Esc`) |
 | Toggle outline | `Ctrl+B` |
+| Toggle source view / edit | `Ctrl+E` |
+| Save | `Ctrl+S` |
 | Toggle theme | `Ctrl+Shift+L` |
 | Export to PDF | `Ctrl+P` |
 | Zoom in / out / reset | `Ctrl+=` / `Ctrl+-` / `Ctrl+0` (or `Ctrl` + wheel) |

@@ -124,11 +124,17 @@ function createWindow() {
     }
     const shotArg = process.argv.find((a) => a.startsWith('--screenshot='));
     if (shotArg) {
+      const execArg = process.argv.find((a) => a.startsWith('--exec-b64='));
       const scrollArg = process.argv.find((a) => a.startsWith('--scroll='));
       const themeArg = process.argv.find((a) => a.startsWith('--theme='));
       const sidebarArg = process.argv.includes('--sidebar');
       setTimeout(async () => {
         try {
+          if (execArg) {
+            const js = Buffer.from(execArg.split('=')[1], 'base64').toString('utf-8');
+            await win.webContents.executeJavaScript(`(async () => { ${js} })()`);
+            await new Promise((r) => setTimeout(r, 800));
+          }
           if (themeArg) {
             await win.webContents.executeJavaScript(
               `document.querySelector('#btn-theme').click()`
@@ -220,6 +226,11 @@ ipcMain.handle('file:open', (_e, filePath) => {
   addRecent(filePath);
   startWatching(filePath);
   return { path: filePath, content };
+});
+
+ipcMain.handle('file:save', (_e, { path: filePath, content }) => {
+  fs.writeFileSync(filePath, content, 'utf-8');
+  return true;
 });
 
 ipcMain.handle('settings:get', () => loadSettings());

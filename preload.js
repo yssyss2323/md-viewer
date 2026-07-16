@@ -1,6 +1,6 @@
 const { contextBridge, ipcRenderer, webFrame, webUtils } = require('electron');
 const path = require('path');
-const { pathToFileURL } = require('url');
+const { fileURLToPath } = require('url');
 const hljs = require('highlight.js');
 const katex = require('katex');
 const texmath = require('markdown-it-texmath');
@@ -40,30 +40,47 @@ md.renderer.rules.fence = (tokens, idx, options, env, self) => {
   return `<div class="code-block" data-lang="${md.utils.escapeHtml(langName)}">${body}</div>`;
 };
 
-function resolveLocal(src, baseDir) {
-  if (!baseDir) return src;
-  if (/^(https?:|data:|file:|#|mailto:)/i.test(src)) return src;
+// Chromium blocks file:// subresources on file:// pages, so local images are
+// inlined as data: URLs. Paths stay untouched in the markdown output; the
+// renderer swaps them via imageDataUrl() after sanitization.
+const fsNode = require('fs');
+const IMG_MIME = {
+  '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif',
+  '.webp': 'image/webp', '.svg': 'image/svg+xml', '.bmp': 'image/bmp', '.ico': 'image/x-icon',
+  '.avif': 'image/avif', '.apng': 'image/apng', '.tif': 'image/tiff', '.tiff': 'image/tiff',
+};
+const IMG_MAX_BYTES = 50 * 1024 * 1024;
+
+function imageDataUrl(src, baseDir) {
   try {
-    const abs = path.isAbsolute(src) ? src : path.join(baseDir, src);
-    return pathToFileURL(abs).href;
+    let p = src.split(/[?#]/)[0];
+    if (/^file:/i.test(p)) p = fileURLToPath(p);
+    else if (/^[a-z][a-z0-9+.-]*:/i.test(p)) return null;
+    const candidates = [p];
+    try {
+      const dec = decodeURIComponent(p);
+      if (dec !== p) candidates.push(dec);
+    } catch {}
+    for (let cand of candidates) {
+      if (!path.isAbsolute(cand)) cand = path.join(baseDir || '', cand);
+      const ext = path.extname(cand).toLowerCase();
+      const mime = IMG_MIME[ext];
+      if (!mime || !fsNode.existsSync(cand)) continue;
+      if (fsNode.statSync(cand).size > IMG_MAX_BYTES) return null;
+      return `data:${mime};base64,${fsNode.readFileSync(cand).toString('base64')}`;
+    }
+    return null;
   } catch {
-    return src;
+    return null;
   }
 }
-
-const defaultImage = md.renderer.rules.image;
-md.renderer.rules.image = (tokens, idx, options, env, self) => {
-  const token = tokens[idx];
-  const src = token.attrGet('src');
-  if (src) token.attrSet('src', resolveLocal(src, env.baseDir));
-  return defaultImage(tokens, idx, options, env, self);
-};
 
 contextBridge.exposeInMainWorld('api', {
   render: (text, baseDir) => md.render(text, { baseDir }),
 
   openDialog: () => ipcRenderer.invoke('dialog:open'),
   openFile: (p) => ipcRenderer.invoke('file:open', p),
+  saveFile: (p, content) => ipcRenderer.invoke('file:save', { path: p, content }),
   getSettings: () => ipcRenderer.invoke('settings:get'),
   setSettings: (patch) => ipcRenderer.invoke('settings:set', patch),
   clearRecent: () => ipcRenderer.invoke('recent:clear'),
@@ -75,6 +92,7 @@ contextBridge.exposeInMainWorld('api', {
   openExternal: (url) => ipcRenderer.send('shell:openExternal', url),
   showInFolder: (p) => ipcRenderer.send('shell:showInFolder', p),
 
+  imageDataUrl: (src, baseDir) => imageDataUrl(src, baseDir),
   pathForFile: (file) => webUtils.getPathForFile(file),
   dirname: (p) => path.dirname(p),
   basename: (p) => path.basename(p),

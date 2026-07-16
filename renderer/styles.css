@@ -143,6 +143,7 @@ button {
   transition: opacity 0.4s;
 }
 #tb-dot.flash { opacity: 1; }
+#tb-dot.modified { opacity: 1; background: #e3a93d; }
 
 .tb-btn {
   -webkit-app-region: no-drag;
@@ -257,6 +258,31 @@ button {
   overflow-x: hidden;
   scroll-behavior: smooth;
   padding-bottom: var(--statusbar-h);
+}
+
+/* ---------- Source editor ---------- */
+#source-view {
+  max-width: var(--content-w);
+  margin: 0 auto;
+  padding: 32px 44px 110px;
+}
+
+#source-editor {
+  display: block;
+  width: 100%;
+  min-height: calc(100vh - var(--titlebar-h) - var(--statusbar-h) - 80px);
+  field-sizing: content;
+  border: none;
+  outline: none;
+  resize: none;
+  background: transparent;
+  color: var(--fg);
+  caret-color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.75;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 /* ---------- Welcome ---------- */
@@ -685,7 +711,7 @@ body[data-theme="dark"] .markdown-body .callout-caution { --callout-color: #ec6a
 
 /* ---------- Print / PDF export ---------- */
 @media print {
-  #titlebar, #sidebar, #statusbar, #find-bar, #drop-overlay, #toast { display: none !important; }
+  #titlebar, #sidebar, #statusbar, #find-bar, #drop-overlay, #toast, #source-view { display: none !important; }
   #layout { padding-top: 0; height: auto; }
   #content-scroll { overflow: visible; padding-bottom: 0; }
   body { background: #fff; color: #24292f; }
