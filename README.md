@@ -11,7 +11,8 @@ A clean, distraction-free markdown viewer for Windows and macOS, built with Elec
 Grab the latest installer from the [**Releases**](https://github.com/yssyss2323/md-viewer/releases/latest) page:
 
 - **Windows** — `MD Viewer Setup <version>.exe`
-- **macOS** — `MD Viewer-<version>-arm64.dmg` (Apple Silicon) or `MD Viewer-<version>-x64.dmg` (Intel)
+- **macOS (Apple Silicon, M1+)** — `MD Viewer-<version>-arm64.dmg`
+- **macOS (Intel)** — `MD Viewer-<version>.dmg`
 
 > **macOS note:** the app is not signed with an Apple Developer certificate, so
 > on first launch macOS shows *"MD Viewer can't be opened because Apple cannot
