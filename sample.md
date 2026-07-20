@@ -1,40 +1,40 @@
-# Mymd 데모 문서
+# Mymd Demo Document
 
-깔끔한 마크다운 뷰어입니다. 이 문서는 지원하는 모든 기능을 보여줍니다.
+A clean markdown viewer. This document shows off everything it supports.
 
-## 텍스트 서식
+## Text formatting
 
-**굵게**, *기울임*, ~~취소선~~, `인라인 코드`, 그리고 [링크](https://www.anthropic.com)도 있습니다.
+**Bold**, *italic*, ~~strikethrough~~, `inline code`, and a [link](https://www.anthropic.com) too.
 
-인용문은 이렇게 보입니다:
+Blockquotes look like this:
 
-> 좋은 도구는 눈에 띄지 않는다.
-> 글에만 집중할 수 있게 해준다.
+> A good tool stays out of the way.
+> It lets you focus on the writing.
 
-## 목록
+## Lists
 
-- 첫 번째 항목
-- 두 번째 항목
-  - 중첩된 항목
-  - 또 다른 중첩 항목
-- 세 번째 항목
+- First item
+- Second item
+  - Nested item
+  - Another nested item
+- Third item
 
-1. 순서가 있는 목록
-2. 두 번째
-3. 세 번째
+1. Ordered list
+2. Second
+3. Third
 
-### 할 일 목록
+### Task list
 
-- [x] 마크다운 렌더링
-- [x] 다크 모드
-- [ ] 세계 정복
+- [x] Markdown rendering
+- [x] Dark mode
+- [ ] Take over the world
 
-## 코드
+## Code
 
 ```javascript
-// 코드 블록에 마우스를 올리면 복사 버튼이 나타납니다
+// Hover a code block to reveal the copy button
 function greet(name) {
-  const message = `안녕하세요, ${name}님!`;
+  const message = `Hello, ${name}!`;
   console.log(message);
   return message.length > 10;
 }
@@ -42,50 +42,50 @@ function greet(name) {
 
 ```python
 def fibonacci(n: int) -> int:
-    """피보나치 수를 계산합니다."""
+    """Compute the nth Fibonacci number."""
     if n < 2:
         return n
     return fibonacci(n - 1) + fibonacci(n - 2)
 ```
 
-## 표
+## Table
 
-| 기능 | 단축키 | 상태 |
+| Feature | Shortcut | Status |
 | --- | --- | --- |
-| 파일 열기 | `Ctrl+O` | ✅ |
-| 찾기 | `Ctrl+F` | ✅ |
-| 목차 토글 | `Ctrl+B` | ✅ |
-| 테마 전환 | `Ctrl+Shift+L` | ✅ |
-| PDF 내보내기 | `Ctrl+P` | ✅ |
-| 확대 / 축소 | `Ctrl` + 휠 | ✅ |
+| Open file | `Ctrl+O` | ✅ |
+| Find | `Ctrl+F` | ✅ |
+| Toggle outline | `Ctrl+B` | ✅ |
+| Toggle theme | `Ctrl+Shift+L` | ✅ |
+| Export to PDF | `Ctrl+P` | ✅ |
+| Zoom in / out | `Ctrl` + wheel | ✅ |
 
-## 수식
+## Math
 
-인라인 수식 $E = mc^2$ 과 블록 수식을 지원합니다:
+Inline math $E = mc^2$ and block math are supported:
 
 $$
 \int_{-\infty}^{\infty} e^{-x^2} \, dx = \sqrt{\pi}
 $$
 
-## 다이어그램
+## Diagram
 
 ```mermaid
 graph LR
-    A[마크다운 파일] --> B{MD Viewer}
-    B --> C[깔끔한 렌더링]
-    B --> D[목차 사이드바]
-    B --> E[PDF 내보내기]
+    A[Markdown file] --> B{Mymd}
+    B --> C[Clean rendering]
+    B --> D[Outline sidebar]
+    B --> E[PDF export]
 ```
 
-## 기타
+## Miscellaneous
 
-수평선도 있고요:
+A horizontal rule:
 
 ---
 
-키보드 입력은 <kbd>Ctrl</kbd> + <kbd>O</kbd> 처럼 표시됩니다.
+Keyboard input renders like <kbd>Ctrl</kbd> + <kbd>O</kbd>.
 
 > [!TIP]
-> 파일을 수정하고 저장하면 화면이 자동으로 새로고침됩니다.
+> Edit and save the file, and the view refreshes automatically.
 
-끝!
+Done!
