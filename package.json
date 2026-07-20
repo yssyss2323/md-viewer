@@ -32,7 +32,23 @@
       "target": [
         "nsis"
       ],
-      "icon": "build/icon.png"
+      "icon": "build/icon.png",
+      "fileAssociations": [
+        {
+          "ext": "md",
+          "name": "Markdown",
+          "description": "Markdown 문서",
+          "role": "Viewer",
+          "icon": "build/icon.ico"
+        },
+        {
+          "ext": "markdown",
+          "name": "Markdown",
+          "description": "Markdown 문서",
+          "role": "Viewer",
+          "icon": "build/icon.ico"
+        }
+      ]
     },
     "nsis": {
       "oneClick": false,
@@ -50,27 +66,25 @@
       ],
       "icon": "build/icon.png",
       "category": "public.app-category.productivity",
-      "identity": null
+      "identity": null,
+      "fileAssociations": [
+        {
+          "ext": "md",
+          "name": "Markdown",
+          "description": "Markdown 문서",
+          "role": "Viewer"
+        },
+        {
+          "ext": "markdown",
+          "name": "Markdown",
+          "description": "Markdown 문서",
+          "role": "Viewer"
+        }
+      ]
     },
     "dmg": {
       "title": "${productName} ${version}"
-    },
-    "fileAssociations": [
-      {
-        "ext": "md",
-        "name": "Markdown",
-        "description": "Markdown 문서",
-        "role": "Viewer",
-        "icon": "build/icon.ico"
-      },
-      {
-        "ext": "markdown",
-        "name": "Markdown",
-        "description": "Markdown 문서",
-        "role": "Viewer",
-        "icon": "build/icon.ico"
-      }
-    ]
+    }
   },
   "devDependencies": {
     "electron": "^43.1.0",
