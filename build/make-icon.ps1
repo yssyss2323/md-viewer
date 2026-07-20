@@ -1,53 +1,179 @@
+# Cleans up logo.png into a crisp, centered, transparent-corner app icon.
+# Run with Windows PowerShell 5.1:  powershell.exe -File build\make-icon.ps1
+# Paths are derived from $PSScriptRoot (engine-provided) to avoid non-ASCII
+# string literals, which PS 5.1 would misread under a non-UTF-8 code page.
 Add-Type -AssemblyName System.Drawing
 
-# Draw at 1024 then downscale for crisp edges
-$S = 1024
-$bmp = New-Object System.Drawing.Bitmap $S, $S
-$g = [System.Drawing.Graphics]::FromImage($bmp)
-$g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
-$g.TextRenderingHint = [System.Drawing.Text.TextRenderingHint]::AntiAliasGridFit
-$g.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
-$g.Clear([System.Drawing.Color]::Transparent)
+$src = Join-Path (Split-Path $PSScriptRoot -Parent) "logo.png"
+$dst = Join-Path $PSScriptRoot "icon.png"
 
-# Flat rounded square
-$m = 48; $w = $S - 2 * $m; $r = 230
-$path = New-Object System.Drawing.Drawing2D.GraphicsPath
-$path.AddArc($m, $m, $r, $r, 180, 90)
-$path.AddArc($m + $w - $r, $m, $r, $r, 270, 90)
-$path.AddArc($m + $w - $r, $m + $w - $r, $r, $r, 0, 90)
-$path.AddArc($m, $m + $w - $r, $r, $r, 90, 90)
-$path.CloseFigure()
-$bg = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(255, 62, 124, 214))
-$g.FillPath($bg, $path)
+$code = @"
+using System;
+using System.Drawing;
+using System.Drawing.Imaging;
+using System.Collections.Generic;
 
-# "M" — left of center, generous padding
-$font = New-Object System.Drawing.Font("Segoe UI", 430, [System.Drawing.FontStyle]::Bold, [System.Drawing.GraphicsUnit]::Pixel)
-$fmt = New-Object System.Drawing.StringFormat
-$fmt.Alignment = [System.Drawing.StringAlignment]::Center
-$fmt.LineAlignment = [System.Drawing.StringAlignment]::Center
-$g.DrawString("M", $font, [System.Drawing.Brushes]::White, (New-Object System.Drawing.RectangleF(80, 6, 600, $S)), $fmt)
+public static class IconMaker {
+    // A pixel counts as flat background if it is near-white / light-gray
+    // (low saturation and bright). The blue/teal border is saturated, so it
+    // is never matched and the icon interior stays intact.
+    // Background = bright AND low-saturation. The white backdrop (sat ~0) and
+    // the blue-tinted drop-shadow (sat <= 30) are both bright and washed out,
+    // while the gradient border stays saturated even where it is bright
+    // (teal top-right: avg ~196 but sat ~58). The saturation guard protects
+    // that teal edge; the brightness guard protects the darker blue border.
+    // The fill starts only from the image edge, so the border ring walls off
+    // the enclosed interior and the bear line-art.
+    static bool IsBg(byte r, byte g, byte b) {
+        int mn = Math.Min(r, Math.Min(g, b));
+        int mx = Math.Max(r, Math.Max(g, b));
+        return (r + g + b) / 3 >= 196 && (mx - mn) <= 40;
+    }
 
-# Thin down arrow — right side, optically aligned with the M
-$pen = New-Object System.Drawing.Pen([System.Drawing.Color]::White, 58)
-$pen.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
-$pen.EndCap = [System.Drawing.Drawing2D.LineCap]::Round
-$pen.LineJoin = [System.Drawing.Drawing2D.LineJoin]::Round
-$ax = 762
-$g.DrawLine($pen, $ax, 372, $ax, 648)
-$g.DrawLine($pen, $ax - 96, 556, $ax, 652)
-$g.DrawLine($pen, $ax + 96, 556, $ax, 652)
+    static int bgCount(bool[] bg) {
+        int c = 0; for (int i = 0; i < bg.Length; i++) if (bg[i]) c++; return c;
+    }
 
-$g.Dispose()
+    static System.Drawing.Drawing2D.GraphicsPath RoundedRect(int x, int y, int w, int h, int r) {
+        var p = new System.Drawing.Drawing2D.GraphicsPath();
+        int d = r * 2;
+        p.AddArc(x, y, d, d, 180, 90);
+        p.AddArc(x + w - d, y, d, d, 270, 90);
+        p.AddArc(x + w - d, y + h - d, d, d, 0, 90);
+        p.AddArc(x, y + h - d, d, d, 90, 90);
+        p.CloseFigure();
+        return p;
+    }
 
-# Downscale to 512 (electron-builder converts to multi-size .ico)
-$out = New-Object System.Drawing.Bitmap 512, 512
-$g2 = [System.Drawing.Graphics]::FromImage($out)
-$g2.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
-$g2.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
-$g2.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
-$g2.DrawImage($bmp, 0, 0, 512, 512)
-$g2.Dispose()
+    public static void Run(byte[] srcBytes, string dst, int outSize, double padFrac) {
+        using (var ms = new System.IO.MemoryStream(srcBytes))
+        using (var orig = new Bitmap(ms)) {
+            int w = orig.Width, h = orig.Height;
+            var bmp = new Bitmap(w, h, PixelFormat.Format32bppArgb);
+            using (var g = Graphics.FromImage(bmp)) g.DrawImage(orig, 0, 0, w, h);
 
-$out.Save("$PSScriptRoot\icon.png", [System.Drawing.Imaging.ImageFormat]::Png)
-$bmp.Dispose(); $out.Dispose()
-Write-Output "icon saved"
+            var data = bmp.LockBits(new Rectangle(0, 0, w, h),
+                ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
+            int n = w * h;
+            byte[] px = new byte[n * 4];
+            System.Runtime.InteropServices.Marshal.Copy(data.Scan0, px, 0, px.Length);
+
+            // Flood fill from every border pixel through background-colored pixels.
+            bool[] bg = new bool[n];
+            var stack = new Stack<int>();
+            Action<int,int> push = (x, y) => {
+                if (x < 0 || y < 0 || x >= w || y >= h) return;
+                int i = y * w + x;
+                if (bg[i]) return;
+                int o = i * 4;
+                if (IsBg(px[o+2], px[o+1], px[o])) { bg[i] = true; stack.Push(i); }
+            };
+            for (int x = 0; x < w; x++) { push(x, 0); push(x, h - 1); }
+            for (int y = 0; y < h; y++) { push(0, y); push(w - 1, y); }
+            while (stack.Count > 0) {
+                int i = stack.Pop(); int x = i % w, y = i / w;
+                push(x-1, y); push(x+1, y); push(x, y-1); push(x, y+1);
+                push(x-1,y-1); push(x+1,y-1); push(x-1,y+1); push(x+1,y+1);
+            }
+
+            // Make background transparent.
+            for (int i = 0; i < n; i++) if (bg[i]) px[i*4+3] = 0;
+
+            // Soften the seam: a kept pixel touching background gets alpha scaled
+            // by how far it is from pure white (removes the pale halo fringe).
+            for (int y = 0; y < h; y++) {
+                for (int x = 0; x < w; x++) {
+                    int i = y * w + x;
+                    if (bg[i]) continue;
+                    bool edge = (x>0 && bg[i-1]) || (x<w-1 && bg[i+1]) ||
+                                (y>0 && bg[i-w]) || (y<h-1 && bg[i+w]);
+                    if (!edge) continue;
+                    int o = i * 4;
+                    int mn = Math.Min(px[o+2], Math.Min(px[o+1], px[o]));
+                    int mx = Math.Max(px[o+2], Math.Max(px[o+1], px[o]));
+                    int sat = mx - mn; int avg = (px[o]+px[o+1]+px[o+2])/3;
+                    if (sat < 20 && avg > 200) {
+                        double a = (255 - avg) / 45.0; if (a < 0) a = 0; if (a > 1) a = 1;
+                        px[o+3] = (byte)(px[o+3] * a);
+                    }
+                }
+            }
+
+            System.Runtime.InteropServices.Marshal.Copy(px, 0, data.Scan0, px.Length);
+            bmp.UnlockBits(data);
+
+            // Bounds of the rounded square itself: "strong" pixels are the
+            // saturated blue/teal border or the dark bear line-art. The faint
+            // blue-tinted drop shadow is neither, so it is excluded here and
+            // then clipped away by the rounded-rect mask below.
+            int sMinX = w, sMinY = h, sMaxX = -1, sMaxY = -1;
+            for (int y = 0; y < h; y++) {
+                for (int x = 0; x < w; x++) {
+                    int o = (y*w+x)*4;
+                    if (px[o+3] < 40) continue;
+                    int r2 = px[o+2], g2b = px[o+1], b2 = px[o];
+                    int mn2 = Math.Min(r2, Math.Min(g2b, b2));
+                    int mx2 = Math.Max(r2, Math.Max(g2b, b2));
+                    int avg2 = (r2+g2b+b2)/3;
+                    bool strong = (mx2 - mn2) >= 32 || avg2 <= 105;
+                    if (strong) {
+                        if (x<sMinX) sMinX=x; if (x>sMaxX) sMaxX=x;
+                        if (y<sMinY) sMinY=y; if (y>sMaxY) sMaxY=y;
+                    }
+                }
+            }
+            Console.Error.WriteLine("size=" + w + "x" + h + " bgPixels=" + bgCount(bg) +
+                " squareBox=(" + sMinX + "," + sMinY + ")-(" + sMaxX + "," + sMaxY + ")");
+            if (sMaxX < sMinX || sMaxY < sMinY)
+                throw new Exception("empty square bbox");
+
+            int cw = sMaxX - sMinX + 1, ch = sMaxY - sMinY + 1;
+            int side = Math.Max(cw, ch);
+            int pad = (int)Math.Round(side * padFrac);
+            int canvas = side + pad * 2;
+            // Radius of the square's rounded corners, as a fraction of its side.
+            int radius = (int)Math.Round(side * 0.185);
+            // Clip exactly at the border's outer edge (strong-pixel bbox) so
+            // no drop-shadow leaks past it.
+            int grow = 0;
+
+            using (var trimmed = new Bitmap(canvas, canvas, PixelFormat.Format32bppArgb))
+            using (var g = Graphics.FromImage(trimmed)) {
+                g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+
+                int rectX = (canvas - cw) / 2 - grow;
+                int rectY = (canvas - ch) / 2 - grow;
+                int rectW = cw + grow * 2;
+                int rectH = ch + grow * 2;
+
+                using (var clip = RoundedRect(rectX, rectY, rectW, rectH, radius))
+                    g.SetClip(clip);
+
+                int dx = (canvas - cw) / 2 - sMinX;
+                int dy = (canvas - ch) / 2 - sMinY;
+                g.DrawImage(bmp, dx, dy);
+                g.ResetClip();
+
+                using (var final = new Bitmap(outSize, outSize, PixelFormat.Format32bppArgb))
+                using (var g2 = Graphics.FromImage(final)) {
+                    g2.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                    g2.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+                    g2.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+                    g2.DrawImage(trimmed, 0, 0, outSize, outSize);
+                    final.Save(dst, ImageFormat.Png);
+                }
+            }
+            bmp.Dispose();
+        }
+    }
+}
+"@
+
+Add-Type -TypeDefinition $code -ReferencedAssemblies System.Drawing, System.Drawing.Primitives -ErrorAction Stop
+
+# outSize 1024, ~7% padding around the rounded square
+$bytes = [System.IO.File]::ReadAllBytes($src)
+[IconMaker]::Run($bytes, $dst, 1024, 0.07)
+Write-Output "icon saved -> $dst"
