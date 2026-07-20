@@ -78,11 +78,15 @@ macOS can only be built on a macOS machine, so this workflow is how the `.dmg` i
 
 ## App icon
 
-`build/icon.png` is generated from `logo.png` by `build/make-icon.ps1` (trims to the artwork, centers it, and makes the corners transparent). Regenerate with:
+`build/icon.png` (app icon) and `build/icon.ico` (multi-resolution, used for the Windows `.md` file-type icon) are generated from `logo.png` by `build/make-icon.ps1` — it trims to the artwork, centers it, makes the corners transparent, and emits a 1024px PNG plus a 16–256px `.ico`. Regenerate with:
 
 ```
 powershell -ExecutionPolicy Bypass -File build\make-icon.ps1
 ```
+
+> A `.ico` (not a `.png`) is required for the file-type icon so Windows Explorer
+> renders it crisply at every size. After updating it, Windows may keep showing
+> the old icon from its cache until the icon cache is rebuilt (or you restart).
 
 ## Project Structure
 

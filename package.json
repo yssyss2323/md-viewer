@@ -1,7 +1,7 @@
 {
   "name": "mdviewr",
   "productName": "MD Viewer",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "A clean, distraction-free markdown viewer",
   "main": "main.js",
   "scripts": {
@@ -61,14 +61,14 @@
         "name": "Markdown",
         "description": "Markdown 문서",
         "role": "Viewer",
-        "icon": "build/icon.png"
+        "icon": "build/icon.ico"
       },
       {
         "ext": "markdown",
         "name": "Markdown",
         "description": "Markdown 문서",
         "role": "Viewer",
-        "icon": "build/icon.png"
+        "icon": "build/icon.ico"
       }
     ]
   },

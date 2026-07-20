@@ -6,6 +6,7 @@ Add-Type -AssemblyName System.Drawing
 
 $src = Join-Path (Split-Path $PSScriptRoot -Parent) "logo.png"
 $dst = Join-Path $PSScriptRoot "icon.png"
+$ico = Join-Path $PSScriptRoot "icon.ico"
 
 $code = @"
 using System;
@@ -45,7 +46,7 @@ public static class IconMaker {
         return p;
     }
 
-    public static void Run(byte[] srcBytes, string dst, int outSize, double padFrac) {
+    public static void Run(byte[] srcBytes, string dst, string icoPath, int outSize, double padFrac) {
         using (var ms = new System.IO.MemoryStream(srcBytes))
         using (var orig = new Bitmap(ms)) {
             int w = orig.Width, h = orig.Height;
@@ -163,9 +164,70 @@ public static class IconMaker {
                     g2.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
                     g2.DrawImage(trimmed, 0, 0, outSize, outSize);
                     final.Save(dst, ImageFormat.Png);
+                    if (icoPath != null) WriteIco(final, icoPath);
                 }
             }
             bmp.Dispose();
+        }
+    }
+
+    // Windows multi-resolution .ico. Small sizes are stored as 32-bit BMP
+    // (DIB) entries and 256 as a PNG entry — the format the shell reads for
+    // file-type icons at every display size.
+    static void WriteIco(Bitmap master, string icoPath) {
+        int[] sizes = { 16, 24, 32, 48, 64, 128, 256 };
+        var images = new System.Collections.Generic.List<byte[]>();
+        var dims = new System.Collections.Generic.List<int>();
+        foreach (int s in sizes) {
+            using (var bm = new Bitmap(s, s, PixelFormat.Format32bppArgb))
+            using (var gg = Graphics.FromImage(bm)) {
+                gg.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                gg.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+                gg.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+                gg.DrawImage(master, 0, 0, s, s);
+                images.Add(DibForIco(bm)); dims.Add(s);
+            }
+        }
+        using (var fs = new System.IO.FileStream(icoPath, System.IO.FileMode.Create))
+        using (var bw = new System.IO.BinaryWriter(fs)) {
+            bw.Write((short)0); bw.Write((short)1); bw.Write((short)images.Count);
+            int offset = 6 + 16 * images.Count;
+            for (int i = 0; i < images.Count; i++) {
+                int d = dims[i];
+                bw.Write((byte)(d >= 256 ? 0 : d));
+                bw.Write((byte)(d >= 256 ? 0 : d));
+                bw.Write((byte)0); bw.Write((byte)0);
+                bw.Write((short)1); bw.Write((short)32);
+                bw.Write(images[i].Length);
+                bw.Write(offset);
+                offset += images[i].Length;
+            }
+            foreach (var img in images) bw.Write(img);
+        }
+    }
+
+    // A 32-bit BMP for an ICO entry: BITMAPINFOHEADER with doubled height
+    // (color + AND mask), BGRA rows bottom-up, plus a zeroed AND mask.
+    static byte[] DibForIco(Bitmap bm) {
+        int w = bm.Width, h = bm.Height;
+        var data = bm.LockBits(new Rectangle(0, 0, w, h),
+            ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+        byte[] px = new byte[w * h * 4];
+        System.Runtime.InteropServices.Marshal.Copy(data.Scan0, px, 0, px.Length);
+        bm.UnlockBits(data);
+        using (var ms = new System.IO.MemoryStream())
+        using (var bw = new System.IO.BinaryWriter(ms)) {
+            bw.Write(40); bw.Write(w); bw.Write(h * 2);
+            bw.Write((short)1); bw.Write((short)32); bw.Write(0);
+            bw.Write(w * h * 4); bw.Write(0); bw.Write(0); bw.Write(0); bw.Write(0);
+            for (int y = h - 1; y >= 0; y--)
+                for (int x = 0; x < w; x++) {
+                    int o = (y * w + x) * 4;
+                    bw.Write(px[o]); bw.Write(px[o+1]); bw.Write(px[o+2]); bw.Write(px[o+3]);
+                }
+            int maskRow = ((w + 31) / 32) * 4;
+            bw.Write(new byte[maskRow * h]);
+            return ms.ToArray();
         }
     }
 }
@@ -175,5 +237,6 @@ Add-Type -TypeDefinition $code -ReferencedAssemblies System.Drawing, System.Draw
 
 # outSize 1024, ~7% padding around the rounded square
 $bytes = [System.IO.File]::ReadAllBytes($src)
-[IconMaker]::Run($bytes, $dst, 1024, 0.07)
+[IconMaker]::Run($bytes, $dst, $ico, 1024, 0.07)
 Write-Output "icon saved -> $dst"
+Write-Output "icon saved -> $ico"
