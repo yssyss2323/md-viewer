@@ -35,7 +35,7 @@
     sourceMode: false,
     theme: 'light',
     zoom: 0,
-    font: 'system',
+    font: 'pretendard',
     fontScale: 1,
     sidebarOpen: false,
     headings: [],
@@ -413,21 +413,65 @@
   /* ---------- Reading font ---------- */
 
   const FONTS = {
-    system: 'var(--font-sans)',
     pretendard: "'Pretendard', var(--font-sans)",
     'nanum-myeongjo': "'Nanum Myeongjo', serif",
     'gowun-dodum': "'Gowun Dodum', var(--font-sans)",
+    // A genuine OS-font stack (deliberately without Pretendard) so it differs
+    // from the Pretendard option.
+    system: '"Segoe UI Variable Text", "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif',
   };
 
+  function fontStack(key) {
+    if (key && key.startsWith('sys:')) return `"${key.slice(4)}", var(--font-sans)`;
+    return FONTS[key] || FONTS.pretendard;
+  }
+
   function applyFont(key, { persist = true } = {}) {
-    if (!FONTS[key]) key = 'system';
+    if (!key || (!FONTS[key] && !key.startsWith('sys:'))) key = 'pretendard';
     state.font = key;
-    if (key === 'system') el.body.style.removeProperty('--reading-font');
-    else el.body.style.setProperty('--reading-font', FONTS[key]);
+    el.body.style.setProperty('--reading-font', fontStack(key));
     document.querySelectorAll('.fm-item').forEach((it) => {
       it.classList.toggle('active', it.dataset.font === key);
     });
+    document.querySelectorAll('.fm-sysitem').forEach((it) => {
+      it.classList.toggle('active', 'sys:' + it.dataset.family === key);
+    });
     if (persist) window.api.setSettings({ font: key });
+  }
+
+  let sysFontsLoaded = false;
+  async function loadSystemFonts() {
+    if (sysFontsLoaded) return;
+    sysFontsLoaded = true;
+    const list = $('#fm-syslist');
+    try {
+      const fonts = await window.api.listFonts();
+      if (!fonts || !fonts.length) {
+        list.innerHTML = '<div class="fm-empty">글꼴 목록을 불러올 수 없습니다</div>';
+        return;
+      }
+      list.innerHTML = '';
+      for (const fam of fonts) {
+        const btn = document.createElement('button');
+        btn.className = 'fm-sysitem';
+        btn.dataset.family = fam;
+        btn.textContent = fam;
+        btn.style.fontFamily = `"${fam}"`;
+        btn.title = fam;
+        if (state.font === 'sys:' + fam) btn.classList.add('active');
+        btn.addEventListener('click', () => applyFont('sys:' + fam));
+        list.appendChild(btn);
+      }
+    } catch {
+      list.innerHTML = '<div class="fm-empty">글꼴 목록을 불러올 수 없습니다</div>';
+    }
+  }
+
+  function filterSystemFonts(q) {
+    const query = q.trim().toLowerCase();
+    document.querySelectorAll('.fm-sysitem').forEach((it) => {
+      it.style.display = it.dataset.family.toLowerCase().includes(query) ? '' : 'none';
+    });
   }
 
   function applyFontScale(scale, { persist = true } = {}) {
@@ -448,7 +492,10 @@
   $('#btn-font').addEventListener('click', (e) => {
     e.stopPropagation();
     toggleFontMenu();
+    if (fontMenuOpen) loadSystemFonts();
   });
+  $('#fm-search').addEventListener('input', (e) => filterSystemFonts(e.target.value));
+  $('#fm-search').addEventListener('click', (e) => e.stopPropagation());
   document.querySelectorAll('.fm-item').forEach((it) => {
     it.addEventListener('click', () => applyFont(it.dataset.font));
   });
@@ -710,7 +757,7 @@
     const s = await window.api.getSettings();
     await setTheme(s.theme || 'light', { persist: false });
     if (typeof s.zoom === 'number') setZoom(s.zoom, { persist: false });
-    applyFont(s.font || 'system', { persist: false });
+    applyFont(s.font || 'pretendard', { persist: false });
     applyFontScale(typeof s.fontScale === 'number' ? s.fontScale : 1, { persist: false });
     refreshRecent();
   })();

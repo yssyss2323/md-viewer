@@ -57,11 +57,14 @@
   </header>
 
   <div id="font-menu" class="hidden">
-    <div class="fm-section">글꼴</div>
-    <button class="fm-item" data-font="system">시스템 기본 <span class="fm-check">✓</span></button>
+    <div class="fm-section">기본 글꼴</div>
     <button class="fm-item" data-font="pretendard" style="font-family:'Pretendard'">Pretendard 프리텐다드 <span class="fm-check">✓</span></button>
     <button class="fm-item" data-font="nanum-myeongjo" style="font-family:'Nanum Myeongjo'">나눔명조 Serif <span class="fm-check">✓</span></button>
     <button class="fm-item" data-font="gowun-dodum" style="font-family:'Gowun Dodum'">고운돋움 Rounded <span class="fm-check">✓</span></button>
+    <button class="fm-item" data-font="system">시스템 기본 <span class="fm-check">✓</span></button>
+    <div class="fm-section">내 컴퓨터 글꼴</div>
+    <input id="fm-search" type="text" placeholder="설치된 글꼴 검색…" spellcheck="false" />
+    <div id="fm-syslist"></div>
     <div class="fm-section">글자 크기</div>
     <div class="fm-size">
       <button id="fm-size-down" title="작게">A−</button>

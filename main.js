@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, screen } = require('electron');
 const fs = require('fs');
 const path = require('path');
 
@@ -140,13 +140,29 @@ function createWindow(filePath) {
   win.__watcher = null;
   windows.add(win);
 
+  // Custom maximize state. We resize instantly (see toggleMaximize) instead of
+  // using the OS animated maximize, which stretched the stale frame and left a
+  // ghost. __isMax tracks our custom-maximized state; native maximize (Aero
+  // snap) is also reflected via isMaximized().
+  win.__isMax = false;
+  win.__normalBounds = null;
+  win.__programmaticResize = false;
+
   const sendWindowState = () => {
     if (!win.isDestroyed()) {
-      win.webContents.send('window-state', { maximized: win.isMaximized() });
+      win.webContents.send('window-state', { maximized: win.__isMax || win.isMaximized() });
     }
   };
-  win.on('maximize', sendWindowState);
-  win.on('unmaximize', sendWindowState);
+  // Native maximize/unmaximize (e.g. Aero snap to top edge) keeps the icon in sync.
+  win.on('maximize', () => { win.__isMax = false; sendWindowState(); });
+  win.on('unmaximize', () => { win.__isMax = false; sendWindowState(); });
+  // A manual drag-resize/move exits our custom-maximized state.
+  win.on('resize', () => {
+    if (!win.__programmaticResize && win.__isMax) { win.__isMax = false; sendWindowState(); }
+  });
+  win.on('move', () => {
+    if (!win.__programmaticResize && win.__isMax) { win.__isMax = false; sendWindowState(); }
+  });
 
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
   win.once('ready-to-show', () => win.show());
@@ -216,6 +232,32 @@ function routeOpen(filePath, senderWin) {
 
   createWindow(resolved);
   return null;
+}
+
+/**
+ * Toggle maximize using an instant resize (no OS animation), which avoids the
+ * stretched/ghosted frame the animated maximize produced.
+ */
+function toggleMaximize(win) {
+  if (win.isMaximized()) {
+    // Was maximized natively (Aero snap); let the OS restore it.
+    win.unmaximize();
+    return;
+  }
+  win.__programmaticResize = true;
+  if (win.__isMax) {
+    if (win.__normalBounds) win.setBounds(win.__normalBounds, false);
+    win.__isMax = false;
+  } else {
+    win.__normalBounds = win.getBounds();
+    const { workArea } = screen.getDisplayMatching(win.getBounds());
+    win.setBounds(workArea, false);
+    win.__isMax = true;
+  }
+  setTimeout(() => { win.__programmaticResize = false; }, 60);
+  if (!win.isDestroyed()) {
+    win.webContents.send('window-state', { maximized: win.__isMax });
+  }
 }
 
 function focusOrCreate() {
@@ -346,6 +388,15 @@ ipcMain.handle('file:save', (_e, { path: filePath, content }) => {
   return true;
 });
 
+ipcMain.handle('fonts:list', async () => {
+  try {
+    const list = await require('font-list').getFonts({ disableQuoting: true });
+    return [...new Set(list)].sort((a, b) => a.localeCompare(b));
+  } catch {
+    return [];
+  }
+});
+
 ipcMain.handle('settings:get', () => loadSettings());
 
 ipcMain.handle('settings:set', (_e, patch) => {
@@ -367,9 +418,7 @@ ipcMain.on('win:minimize', (event) => {
 
 ipcMain.on('win:toggle-maximize', (event) => {
   const win = senderWindow(event);
-  if (!win) return;
-  if (win.isMaximized()) win.unmaximize();
-  else win.maximize();
+  if (win) toggleMaximize(win);
 });
 
 ipcMain.on('win:close', (event) => {

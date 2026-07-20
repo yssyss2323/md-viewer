@@ -281,6 +281,41 @@ body.platform-darwin #tb-logo { margin-left: 0; }
 .fm-item .fm-check { color: var(--accent); opacity: 0; }
 .fm-item.active .fm-check { opacity: 1; }
 .fm-item.active { color: var(--accent); }
+#fm-search {
+  width: 100%;
+  margin: 2px 0 6px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-soft);
+  color: var(--fg);
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+}
+#fm-search:focus { border-color: var(--accent); }
+#fm-syslist {
+  max-height: 200px;
+  overflow-y: auto;
+  margin-bottom: 4px;
+}
+.fm-sysitem {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 10px;
+  border-radius: 7px;
+  font-size: 14px;
+  color: var(--fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background 0.1s;
+}
+.fm-sysitem:hover { background: var(--bg-hover); }
+.fm-sysitem.active { color: var(--accent); background: var(--accent-soft); }
+.fm-empty { padding: 8px 10px; font-size: 12.5px; color: var(--fg-faint); }
+
 .fm-size {
   display: flex;
   align-items: center;
