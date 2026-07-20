@@ -1,4 +1,8 @@
-# MD Viewer
+<p align="center">
+  <img src="docs/logo.png" width="112" alt="MD Viewer logo" />
+</p>
+
+<h1 align="center">MD Viewer</h1>
 
 A clean, distraction-free markdown viewer for Windows and macOS, built with Electron. Focused on whitespace and typography.
 

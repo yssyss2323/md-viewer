@@ -235,29 +235,63 @@ function routeOpen(filePath, senderWin) {
 }
 
 /**
- * Toggle maximize using an instant resize (no OS animation), which avoids the
- * stretched/ghosted frame the animated maximize produced.
+ * Toggle maximize with our own short eased resize animation. We step the window
+ * bounds ourselves (rather than the OS animated maximize) so the web contents
+ * repaints at each intermediate size — this keeps the growth animation but
+ * avoids the stretched/ghosted frame the native animation produced.
  */
+function animateBounds(win, target, onDone) {
+  const from = win.getBounds();
+  const dx = target.x - from.x, dy = target.y - from.y;
+  const dw = target.width - from.width, dh = target.height - from.height;
+  const duration = 150;
+  const start = Date.now();
+  const ease = (t) => 1 - Math.pow(1 - t, 3); // easeOutCubic
+  win.__animating = true;
+  win.__programmaticResize = true;
+  const step = () => {
+    if (win.isDestroyed()) return;
+    const t = Math.min(1, (Date.now() - start) / duration);
+    const e = ease(t);
+    win.setBounds(
+      {
+        x: Math.round(from.x + dx * e),
+        y: Math.round(from.y + dy * e),
+        width: Math.round(from.width + dw * e),
+        height: Math.round(from.height + dh * e),
+      },
+      false
+    );
+    if (t < 1) {
+      setTimeout(step, 8);
+    } else {
+      win.__animating = false;
+      setTimeout(() => { win.__programmaticResize = false; }, 40);
+      if (onDone) onDone();
+    }
+  };
+  step();
+}
+
 function toggleMaximize(win) {
+  if (win.__animating) return;
   if (win.isMaximized()) {
     // Was maximized natively (Aero snap); let the OS restore it.
     win.unmaximize();
     return;
   }
-  win.__programmaticResize = true;
+  let target;
   if (win.__isMax) {
-    if (win.__normalBounds) win.setBounds(win.__normalBounds, false);
+    target = win.__normalBounds || win.getBounds();
     win.__isMax = false;
   } else {
     win.__normalBounds = win.getBounds();
-    const { workArea } = screen.getDisplayMatching(win.getBounds());
-    win.setBounds(workArea, false);
+    target = screen.getDisplayMatching(win.getBounds()).workArea;
     win.__isMax = true;
   }
-  setTimeout(() => { win.__programmaticResize = false; }, 60);
-  if (!win.isDestroyed()) {
-    win.webContents.send('window-state', { maximized: win.__isMax });
-  }
+  // Update the caption icon immediately, then animate.
+  if (!win.isDestroyed()) win.webContents.send('window-state', { maximized: win.__isMax });
+  animateBounds(win, target);
 }
 
 function focusOrCreate() {

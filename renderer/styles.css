@@ -441,11 +441,12 @@ body.platform-darwin #tb-logo { margin-left: 0; }
 }
 
 .welcome-logo {
-  font-size: 44px;
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  color: var(--accent);
-  opacity: 0.9;
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 4px;
+  display: block;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .welcome-inner h1 {
