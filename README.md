@@ -4,7 +4,13 @@
 
 <h1 align="center">Mymd</h1>
 
-A clean, distraction-free markdown viewer for Windows and macOS, built with Electron. Focused on whitespace and typography. (Interface available in Korean and English.)
+<div align="center">
+  <strong>A clean, distraction-free markdown viewer.</strong><br>
+  Focused on whitespace and typography.<br>
+  <sub>Available for Windows and macOS.</sub>
+</div>
+
+<br>
 
 | Light | Dark |
 | --- | --- |
