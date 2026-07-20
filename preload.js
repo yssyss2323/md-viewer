@@ -76,6 +76,7 @@ function imageDataUrl(src, baseDir) {
 }
 
 contextBridge.exposeInMainWorld('api', {
+  platform: process.platform,
   render: (text, baseDir) => md.render(text, { baseDir }),
 
   openDialog: () => ipcRenderer.invoke('dialog:open'),

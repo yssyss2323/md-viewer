@@ -262,8 +262,9 @@
 
   /* ---------- File opening ---------- */
 
+  // A file may open in a new window (returns null) or, when this is still the
+  // empty welcome window, render here in place (returns { path, content }).
   async function openViaDialog() {
-    if (!confirmDiscard()) return;
     try {
       const res = await window.api.openDialog();
       if (res) await display(res.path, res.content);
@@ -273,10 +274,9 @@
   }
 
   async function openPath(p) {
-    if (!confirmDiscard()) return;
     try {
       const res = await window.api.openFile(p);
-      await display(res.path, res.content);
+      if (res) await display(res.path, res.content);
     } catch {
       toast('파일을 열 수 없습니다 (이동 또는 삭제됨)');
       refreshRecent();
@@ -632,6 +632,7 @@
   /* ---------- Init ---------- */
 
   (async () => {
+    document.body.classList.add('platform-' + window.api.platform);
     const s = await window.api.getSettings();
     await setTheme(s.theme || 'light', { persist: false });
     if (typeof s.zoom === 'number') setZoom(s.zoom, { persist: false });

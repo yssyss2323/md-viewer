@@ -123,6 +123,20 @@ button {
   min-width: 0;
 }
 
+#tb-logo {
+  width: 22px;
+  height: 22px;
+  margin: 0 6px 0 2px;
+  flex-shrink: 0;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-app-region: drag;
+}
+
+/* macOS: leave room for the traffic-light buttons at the top-left. */
+body.platform-darwin #titlebar { padding-left: 78px; }
+body.platform-darwin #tb-logo { margin-left: 0; }
+
 #tb-title {
   margin-left: 6px;
   font-size: 12.5px;
