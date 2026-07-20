@@ -5,6 +5,45 @@ const path = require('path');
 const isMac = process.platform === 'darwin';
 const MD_EXTS = new Set(['.md', '.markdown', '.mdown', '.mkd', '.txt']);
 
+// In development (running unpackaged), use a separate userData directory so the
+// dev instance does NOT share the installed app's single-instance lock — a
+// lingering dev process would otherwise hijack the file the user double-clicks.
+if (!app.isPackaged) {
+  try {
+    app.setPath('userData', path.join(app.getPath('appData'), 'Mymd (dev)'));
+  } catch {}
+}
+
+// ---------- Localization (main-process dialogs) ----------
+const STRINGS = {
+  ko: {
+    openTitle: '마크다운 파일 열기',
+    markdown: 'Markdown',
+    allFiles: '모든 파일',
+    pdfTitle: 'PDF로 내보내기',
+    unsavedMsg: '저장하지 않은 변경 사항이 있습니다.',
+    unsavedDetail: '편집한 내용을 저장할까요?',
+    save: '저장',
+    dontSave: '저장 안 함',
+    cancel: '취소',
+  },
+  en: {
+    openTitle: 'Open Markdown File',
+    markdown: 'Markdown',
+    allFiles: 'All Files',
+    pdfTitle: 'Export to PDF',
+    unsavedMsg: 'You have unsaved changes.',
+    unsavedDetail: 'Do you want to save your edits?',
+    save: 'Save',
+    dontSave: "Don't Save",
+    cancel: 'Cancel',
+  },
+};
+function mt(key) {
+  const lang = loadSettings().lang === 'en' ? 'en' : 'ko';
+  return (STRINGS[lang] || STRINGS.ko)[key];
+}
+
 /** All open windows. Each window owns one document (or the welcome screen). */
 const windows = new Set();
 /** Files requested before the app was ready (macOS open-file at launch). */
@@ -174,16 +213,6 @@ function createWindow(filePath) {
     }
     sendWindowState();
     maybeRunScreenshot(win);
-  });
-
-  win.webContents.on('found-in-page', (_e, result) => {
-    if (!win.isDestroyed()) {
-      win.webContents.send('find-result', {
-        activeMatchOrdinal: result.activeMatchOrdinal,
-        matches: result.matches,
-        finalUpdate: result.finalUpdate,
-      });
-    }
   });
 
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -393,10 +422,10 @@ function senderWindow(event) {
 ipcMain.handle('dialog:open', async (event) => {
   const win = senderWindow(event);
   const { canceled, filePaths } = await dialog.showOpenDialog(win, {
-    title: '마크다운 파일 열기',
+    title: mt('openTitle'),
     filters: [
-      { name: 'Markdown', extensions: ['md', 'markdown', 'mdown', 'mkd', 'txt'] },
-      { name: '모든 파일', extensions: ['*'] },
+      { name: mt('markdown'), extensions: ['md', 'markdown', 'mdown', 'mkd', 'txt'] },
+      { name: mt('allFiles'), extensions: ['*'] },
     ],
     properties: ['openFile', 'multiSelections'],
   });
@@ -427,12 +456,12 @@ ipcMain.handle('dialog:unsaved', async (event) => {
   const win = senderWindow(event);
   const { response } = await dialog.showMessageBox(win, {
     type: 'warning',
-    buttons: ['저장', '저장 안 함', '취소'],
+    buttons: [mt('save'), mt('dontSave'), mt('cancel')],
     defaultId: 0,
     cancelId: 2,
     noLink: true,
-    message: '저장하지 않은 변경 사항이 있습니다.',
-    detail: '편집한 내용을 저장할까요?',
+    message: mt('unsavedMsg'),
+    detail: mt('unsavedDetail'),
   });
   return response;
 });
@@ -482,20 +511,10 @@ ipcMain.handle('recent:clear', () => {
   return s;
 });
 
-ipcMain.on('find:start', (event, { text, forward, findNext }) => {
-  const win = senderWindow(event);
-  if (win && text) win.webContents.findInPage(text, { forward, findNext });
-});
-
-ipcMain.on('find:stop', (event, action) => {
-  const win = senderWindow(event);
-  if (win) win.webContents.stopFindInPage(action || 'clearSelection');
-});
-
 ipcMain.handle('pdf:export', async (event, suggestedName) => {
   const win = senderWindow(event);
   const { canceled, filePath } = await dialog.showSaveDialog(win, {
-    title: 'PDF로 내보내기',
+    title: mt('pdfTitle'),
     defaultPath: suggestedName || 'document.pdf',
     filters: [{ name: 'PDF', extensions: ['pdf'] }],
   });

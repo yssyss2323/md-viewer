@@ -38,9 +38,79 @@
     font: 'pretendard',
     fontScale: 1,
     contentWidth: 47,
+    lang: 'ko',
+    maximized: false,
     sidebarOpen: false,
     headings: [],
   };
+
+  /* ---------- Localization ---------- */
+
+  const I18N = {
+    ko: {
+      ttSidebar: '목차 (Ctrl+B)', ttOpen: '파일 열기 (Ctrl+O)', ttSource: '원문 보기/편집 (Ctrl+E)',
+      ttFind: '찾기 (Ctrl+F)', ttPdf: 'PDF로 내보내기 (Ctrl+P)', ttFont: '글꼴',
+      ttTheme: '테마 전환 (Ctrl+Shift+L)', ttMinimize: '최소화', ttMaximize: '최대화', ttRestore: '이전 크기로',
+      ttClose: '닫기', secBundledFonts: '기본 글꼴', fontSystem: '시스템 기본', secSystemFonts: '내 컴퓨터 글꼴',
+      phFontSearch: '설치된 글꼴 검색…', secFontSize: '글자 크기', ttSmaller: '작게', ttLarger: '크게',
+      secContentWidth: '본문 너비', ttNarrower: '좁게', ttWider: '넓게', secLanguage: '언어 / Language',
+      phFind: '찾기…', ttFindPrev: '이전 (Shift+Enter)', ttFindNext: '다음 (Enter)', ttFindClose: '닫기 (Esc)',
+      outline: '목차', welcomeSub: '마크다운 파일을 열거나 창으로 끌어다 놓으세요', openFile: '파일 열기',
+      recentFiles: '최근 파일', ttShowInFolder: '클릭하면 폴더에서 보기', dropHere: '파일을 놓아서 열기',
+      outlineEmpty: '제목이 없습니다', stats: '{0} 단어 · {1} 글자 · 약 {2}분', findNone: '없음',
+      dotModified: '저장되지 않은 변경 (Ctrl+S)', dotChanged: '파일이 변경되어 새로고침됨',
+      toastOpenFirst: '먼저 파일을 열어주세요', toastCopyFail: '복사에 실패했습니다', toastSaved: '저장됨',
+      toastNoChanges: '저장할 변경 사항이 없습니다', toastSaveFail: '저장 실패: {0}', toastPdfGen: 'PDF 생성 중…',
+      toastPdfSaved: '저장됨: {0}', toastPdfFail: '내보내기 실패: {0}', toastOpenFail: '파일을 열 수 없습니다: {0}',
+      toastOpenFailMoved: '파일을 열 수 없습니다 (이동 또는 삭제됨)',
+      toastWatchModified: '파일이 디스크에서 변경되었지만, 저장하지 않은 편집이 있어 반영하지 않았습니다',
+      fontListFail: '글꼴 목록을 불러올 수 없습니다',
+      confirmDiscard: '저장하지 않은 변경 사항이 있습니다. 버리고 계속할까요?',
+      copy: '복사', coNOTE: '노트', coTIP: '팁', coIMPORTANT: '중요', coWARNING: '주의', coCAUTION: '경고',
+    },
+    en: {
+      ttSidebar: 'Outline (Ctrl+B)', ttOpen: 'Open file (Ctrl+O)', ttSource: 'Source view / edit (Ctrl+E)',
+      ttFind: 'Find (Ctrl+F)', ttPdf: 'Export to PDF (Ctrl+P)', ttFont: 'Font',
+      ttTheme: 'Toggle theme (Ctrl+Shift+L)', ttMinimize: 'Minimize', ttMaximize: 'Maximize', ttRestore: 'Restore',
+      ttClose: 'Close', secBundledFonts: 'Bundled fonts', fontSystem: 'System default', secSystemFonts: 'Installed fonts',
+      phFontSearch: 'Search installed fonts…', secFontSize: 'Font size', ttSmaller: 'Smaller', ttLarger: 'Larger',
+      secContentWidth: 'Content width', ttNarrower: 'Narrower', ttWider: 'Wider', secLanguage: '언어 / Language',
+      phFind: 'Find…', ttFindPrev: 'Previous (Shift+Enter)', ttFindNext: 'Next (Enter)', ttFindClose: 'Close (Esc)',
+      outline: 'Outline', welcomeSub: 'Open a markdown file, or drag one onto the window', openFile: 'Open File',
+      recentFiles: 'Recent files', ttShowInFolder: 'Click to show in folder', dropHere: 'Drop to open',
+      outlineEmpty: 'No headings', stats: '{0} words · {1} chars · ~{2} min', findNone: 'No results',
+      dotModified: 'Unsaved changes (Ctrl+S)', dotChanged: 'File changed on disk — reloaded',
+      toastOpenFirst: 'Open a file first', toastCopyFail: 'Copy failed', toastSaved: 'Saved',
+      toastNoChanges: 'No changes to save', toastSaveFail: 'Save failed: {0}', toastPdfGen: 'Generating PDF…',
+      toastPdfSaved: 'Saved: {0}', toastPdfFail: 'Export failed: {0}', toastOpenFail: 'Could not open file: {0}',
+      toastOpenFailMoved: 'Could not open file (moved or deleted)',
+      toastWatchModified: 'The file changed on disk, but your unsaved edits were kept',
+      fontListFail: 'Could not load font list',
+      confirmDiscard: 'You have unsaved changes. Discard and continue?',
+      copy: 'Copy', coNOTE: 'Note', coTIP: 'Tip', coIMPORTANT: 'Important', coWARNING: 'Warning', coCAUTION: 'Caution',
+    },
+  };
+
+  function t(key, ...args) {
+    let s = (I18N[state.lang] && I18N[state.lang][key]) || I18N.ko[key] || key;
+    args.forEach((a, i) => { s = s.replace('{' + i + '}', a); });
+    return s;
+  }
+
+  function applyLang(l, { persist = true } = {}) {
+    state.lang = l === 'en' ? 'en' : 'ko';
+    document.documentElement.lang = state.lang;
+    document.querySelectorAll('[data-i18n]').forEach((e) => { e.textContent = t(e.dataset.i18n); });
+    document.querySelectorAll('[data-i18n-title]').forEach((e) => { e.title = t(e.dataset.i18nTitle); });
+    document.querySelectorAll('[data-i18n-ph]').forEach((e) => { e.placeholder = t(e.dataset.i18nPh); });
+    document.querySelectorAll('.fm-lang').forEach((b) => b.classList.toggle('active', b.dataset.lang === state.lang));
+    $('#wc-max').title = state.maximized ? t('ttRestore') : t('ttMaximize');
+    el.dot.title = state.modified ? t('dotModified') : '';
+    if (state.headings && state.headings.length === 0 && !el.content.classList.contains('hidden')) buildOutline();
+    if (state.raw != null) updateStats();
+    if (findOpen) updateFindCount();
+    if (persist) window.api.setSettings({ lang: state.lang });
+  }
 
   // Allow local image URLs (mdimg:// scheme, see main.js) through sanitization.
   const SANITIZE_OPTS = {
@@ -115,11 +185,12 @@
 
     const name = window.api.basename(path);
     el.title.textContent = name;
-    document.title = `${name} — MD Viewer`;
+    document.title = `${name} — Mymd`;
     el.statusPath.textContent = path;
 
     el.scroll.scrollTop = keepScroll ? prevScroll : 0;
     updateScrollSpy();
+    if (findOpen) runFind(el.findInput.value); // re-index matches against fresh DOM
   }
 
   function buildHeadings() {
@@ -139,7 +210,7 @@
     if (state.headings.length === 0) {
       const empty = document.createElement('div');
       empty.className = 'outline-empty';
-      empty.textContent = '제목이 없습니다';
+      empty.textContent = t('outlineEmpty');
       el.outline.appendChild(empty);
       return;
     }
@@ -168,7 +239,7 @@
       }
       const btn = document.createElement('button');
       btn.className = 'code-copy';
-      btn.title = '복사';
+      btn.title = t('copy');
       btn.innerHTML =
         '<svg viewBox="0 0 16 16" width="13" height="13"><path fill="currentColor" d="M5 2.5A1.5 1.5 0 0 1 6.5 1h6A1.5 1.5 0 0 1 14 2.5v6A1.5 1.5 0 0 1 12.5 10h-6A1.5 1.5 0 0 1 5 8.5v-6ZM6.5 2a.5.5 0 0 0-.5.5v6c0 .28.22.5.5.5h6a.5.5 0 0 0 .5-.5v-6a.5.5 0 0 0-.5-.5h-6ZM2 5.5c0-.5.3-.94.73-1.15a.5.5 0 1 1 .43.9.25.25 0 0 0-.16.25v7c0 .14.11.25.25.25h7a.25.25 0 0 0 .25-.25.5.5 0 0 1 1 0c0 .69-.56 1.25-1.25 1.25h-7C2.56 13.75 2 13.19 2 12.5v-7Z"/></svg>';
       btn.addEventListener('click', async () => {
@@ -184,20 +255,14 @@
               '<svg viewBox="0 0 16 16" width="13" height="13"><path fill="currentColor" d="M5 2.5A1.5 1.5 0 0 1 6.5 1h6A1.5 1.5 0 0 1 14 2.5v6A1.5 1.5 0 0 1 12.5 10h-6A1.5 1.5 0 0 1 5 8.5v-6ZM6.5 2a.5.5 0 0 0-.5.5v6c0 .28.22.5.5.5h6a.5.5 0 0 0 .5-.5v-6a.5.5 0 0 0-.5-.5h-6ZM2 5.5c0-.5.3-.94.73-1.15a.5.5 0 1 1 .43.9.25.25 0 0 0-.16.25v7c0 .14.11.25.25.25h7a.25.25 0 0 0 .25-.25.5.5 0 0 1 1 0c0 .69-.56 1.25-1.25 1.25h-7C2.56 13.75 2 13.19 2 12.5v-7Z"/></svg>';
           }, 1400);
         } catch {
-          toast('복사에 실패했습니다');
+          toast(t('toastCopyFail'));
         }
       });
       block.appendChild(btn);
     });
   }
 
-  const CALLOUTS = {
-    NOTE: { label: '노트', icon: 'ℹ' },
-    TIP: { label: '팁', icon: '💡' },
-    IMPORTANT: { label: '중요', icon: '❗' },
-    WARNING: { label: '주의', icon: '⚠' },
-    CAUTION: { label: '경고', icon: '🛑' },
-  };
+  const CALLOUT_ICONS = { NOTE: 'ℹ', TIP: '💡', IMPORTANT: '❗', WARNING: '⚠', CAUTION: '🛑' };
 
   function transformCallouts() {
     el.content.querySelectorAll('blockquote').forEach((bq) => {
@@ -206,12 +271,11 @@
       const m = first.textContent.match(/^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*/);
       if (!m) return;
       const type = m[1];
-      const info = CALLOUTS[type];
       const div = document.createElement('div');
       div.className = `callout callout-${type.toLowerCase()}`;
       const title = document.createElement('div');
       title.className = 'callout-title';
-      title.textContent = `${info.icon} ${info.label}`;
+      title.textContent = `${CALLOUT_ICONS[type]} ${t('co' + type)}`;
       div.appendChild(title);
       first.innerHTML = first.innerHTML.replace(/^\[!\w+\]\s*(<br\s*\/?>)?\s*/, '');
       while (bq.firstChild) div.appendChild(bq.firstChild);
@@ -236,7 +300,7 @@
     const words = (text.trim().match(/\S+/g) || []).length;
     const chars = text.replace(/\s/g, '').length;
     const minutes = Math.max(1, Math.round(words / 250));
-    el.statusStats.textContent = `${words.toLocaleString()} 단어 · ${chars.toLocaleString()} 글자 · 약 ${minutes}분`;
+    el.statusStats.textContent = t('stats', words.toLocaleString(), chars.toLocaleString(), minutes);
   }
 
   /* ---------- Scroll spy ---------- */
@@ -272,7 +336,7 @@
       const res = await window.api.openDialog();
       if (res) await display(res.path, res.content);
     } catch (err) {
-      toast(`파일을 열 수 없습니다: ${err.message}`);
+      toast(t('toastOpenFail', err.message));
     }
   }
 
@@ -281,7 +345,7 @@
       const res = await window.api.openFile(p);
       if (res) await display(res.path, res.content);
     } catch {
-      toast('파일을 열 수 없습니다 (이동 또는 삭제됨)');
+      toast(t('toastOpenFailMoved'));
       refreshRecent();
     }
   }
@@ -345,12 +409,12 @@
   function setModified(on) {
     state.modified = on;
     el.dot.classList.toggle('modified', on);
-    el.dot.title = on ? '저장되지 않은 변경 (Ctrl+S)' : '';
+    el.dot.title = on ? t('dotModified') : '';
   }
 
   async function setSourceMode(on, { applyEdits = true, prompt = true } = {}) {
     if (on && !state.path) {
-      toast('먼저 파일을 열어주세요');
+      toast(t('toastOpenFirst'));
       return;
     }
     if (on === state.sourceMode) return;
@@ -371,6 +435,7 @@
     state.sourceMode = on;
     $('#btn-source').classList.toggle('active', on);
     if (on) {
+      if (findOpen) closeFind();
       el.editor.value = state.raw;
       el.content.classList.add('hidden');
       el.sourceView.classList.remove('hidden');
@@ -400,7 +465,7 @@
   async function saveFile() {
     if (!state.path) return;
     if (!state.modified) {
-      toast('저장할 변경 사항이 없습니다');
+      toast(t('toastNoChanges'));
       return;
     }
     try {
@@ -414,14 +479,14 @@
       } else {
         updateStats();
       }
-      toast('저장됨');
+      toast(t('toastSaved'));
     } catch (err) {
-      toast(`저장 실패: ${err.message}`);
+      toast(t('toastSaveFail', err.message));
     }
   }
 
   function confirmDiscard() {
-    return !state.modified || window.confirm('저장하지 않은 변경 사항이 있습니다. 버리고 계속할까요?');
+    return !state.modified || window.confirm(t('confirmDiscard'));
   }
 
   /* ---------- Reading font ---------- */
@@ -469,7 +534,7 @@
     try {
       const fonts = await window.api.listFonts();
       if (!fonts || !fonts.length) {
-        list.innerHTML = '<div class="fm-empty">글꼴 목록을 불러올 수 없습니다</div>';
+        list.innerHTML = `<div class="fm-empty">${t('fontListFail')}</div>`;
         return;
       }
       list.innerHTML = '';
@@ -485,7 +550,7 @@
         list.appendChild(btn);
       }
     } catch {
-      list.innerHTML = '<div class="fm-empty">글꼴 목록을 불러올 수 없습니다</div>';
+      list.innerHTML = `<div class="fm-empty">${t('fontListFail')}</div>`;
     }
   }
 
@@ -525,6 +590,9 @@
   $('#fm-size-up').addEventListener('click', () => applyFontScale(state.fontScale + 0.1));
   $('#fm-width-down').addEventListener('click', () => applyContentWidth(state.contentWidth - 4));
   $('#fm-width-up').addEventListener('click', () => applyContentWidth(state.contentWidth + 4));
+  document.querySelectorAll('.fm-lang').forEach((b) => {
+    b.addEventListener('click', () => applyLang(b.dataset.lang));
+  });
   document.addEventListener('click', (e) => {
     if (fontMenuOpen && !e.target.closest('#font-menu') && !e.target.closest('#btn-font')) {
       toggleFontMenu(false);
@@ -557,51 +625,116 @@
     if (persist) window.api.setSettings({ zoom: state.zoom });
   }
 
-  /* ---------- Find ---------- */
+  /* ---------- Find (searches only the rendered markdown) ---------- */
 
   let findOpen = false;
+  let findRanges = [];
+  let findIndex = -1;
+  const findSupported = typeof CSS !== 'undefined' && CSS.highlights;
 
   function openFind() {
     findOpen = true;
     el.findBar.classList.remove('hidden');
     el.findInput.focus();
     el.findInput.select();
+    runFind(el.findInput.value);
+  }
+
+  function clearFind() {
+    if (findSupported) {
+      CSS.highlights.delete('find');
+      CSS.highlights.delete('find-current');
+    }
+    findRanges = [];
+    findIndex = -1;
   }
 
   function closeFind() {
     findOpen = false;
     el.findBar.classList.add('hidden');
     el.findCount.textContent = '';
-    window.api.findStop('clearSelection');
+    clearFind();
   }
 
-  el.findInput.addEventListener('input', () => {
-    const text = el.findInput.value;
-    if (text) window.api.findStart(text, true, false);
-    else {
-      el.findCount.textContent = '';
-      window.api.findStop('clearSelection');
+  // Collect matches of `query` among the text nodes inside #content only —
+  // never the title bar path, status bar, or the search box itself.
+  function runFind(query) {
+    clearFind();
+    const q = (query || '').toLowerCase();
+    if (!q || el.content.classList.contains('hidden')) {
+      updateFindCount();
+      return;
     }
-  });
+    const walker = document.createTreeWalker(el.content, NodeFilter.SHOW_TEXT, {
+      acceptNode: (n) => (n.nodeValue && n.nodeValue.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT),
+    });
+    let node;
+    while ((node = walker.nextNode())) {
+      const text = node.nodeValue.toLowerCase();
+      let from = 0;
+      let idx;
+      while ((idx = text.indexOf(q, from)) !== -1) {
+        const r = document.createRange();
+        r.setStart(node, idx);
+        r.setEnd(node, idx + q.length);
+        findRanges.push(r);
+        from = idx + q.length;
+      }
+    }
+    findIndex = findRanges.length ? 0 : -1;
+    paintFind();
+    if (findIndex >= 0) scrollToMatch();
+    updateFindCount();
+  }
 
+  function paintFind() {
+    if (!findSupported) return;
+    if (!findRanges.length) {
+      CSS.highlights.delete('find');
+      CSS.highlights.delete('find-current');
+      return;
+    }
+    CSS.highlights.set('find', new Highlight(...findRanges.filter((_, i) => i !== findIndex)));
+    if (findIndex >= 0) CSS.highlights.set('find-current', new Highlight(findRanges[findIndex]));
+    else CSS.highlights.delete('find-current');
+  }
+
+  function scrollToMatch() {
+    const r = findRanges[findIndex];
+    if (!r) return;
+    const c = el.scroll.getBoundingClientRect();
+    const b = r.getBoundingClientRect();
+    if (b.top < c.top + 56 || b.bottom > c.bottom - 24) {
+      el.scroll.scrollTop += b.top - c.top - el.scroll.clientHeight * 0.4;
+    }
+  }
+
+  function moveFind(dir) {
+    if (!findRanges.length) return;
+    findIndex = (findIndex + dir + findRanges.length) % findRanges.length;
+    paintFind();
+    scrollToMatch();
+    updateFindCount();
+  }
+
+  function updateFindCount() {
+    if (!el.findInput.value) {
+      el.findCount.textContent = '';
+      return;
+    }
+    el.findCount.textContent = findRanges.length ? `${findIndex + 1}/${findRanges.length}` : t('findNone');
+  }
+
+  el.findInput.addEventListener('input', () => runFind(el.findInput.value));
   el.findInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (el.findInput.value) window.api.findStart(el.findInput.value, !e.shiftKey, true);
+      moveFind(e.shiftKey ? -1 : 1);
     }
   });
-
-  $('#find-next').addEventListener('click', () => {
-    if (el.findInput.value) window.api.findStart(el.findInput.value, true, true);
-  });
-  $('#find-prev').addEventListener('click', () => {
-    if (el.findInput.value) window.api.findStart(el.findInput.value, false, true);
-  });
+  $('#find-next').addEventListener('click', () => moveFind(1));
+  $('#find-prev').addEventListener('click', () => moveFind(-1));
   $('#find-close').addEventListener('click', closeFind);
-
-  window.api.onFindResult(({ activeMatchOrdinal, matches }) => {
-    el.findCount.textContent = matches > 0 ? `${activeMatchOrdinal}/${matches}` : '없음';
-  });
 
   /* ---------- Drag & drop ---------- */
 
@@ -658,22 +791,23 @@
   });
 
   window.api.onWindowState(({ maximized }) => {
+    state.maximized = maximized;
     $('.wc-ico-max').classList.toggle('hidden', maximized);
     $('.wc-ico-restore').classList.toggle('hidden', !maximized);
-    $('#wc-max').title = maximized ? '이전 크기로' : '최대화';
+    $('#wc-max').title = maximized ? t('ttRestore') : t('ttMaximize');
   });
 
   async function exportPdf() {
     if (!state.path) {
-      toast('먼저 파일을 열어주세요');
+      toast(t('toastOpenFirst'));
       return;
     }
     if (state.sourceMode) await setSourceMode(false, { prompt: false });
     const name = window.api.basename(state.path).replace(/\.[^.]+$/, '') + '.pdf';
-    toast('PDF 생성 중…', 8000);
+    toast(t('toastPdfGen'), 8000);
     const res = await window.api.exportPdf(name);
-    if (res.ok) toast(`저장됨: ${res.path}`);
-    else if (!res.canceled) toast(`내보내기 실패: ${res.message}`);
+    if (res.ok) toast(t('toastPdfSaved', res.path));
+    else if (!res.canceled) toast(t('toastPdfFail', res.message));
     else el.toast.classList.add('hidden');
   }
 
@@ -758,7 +892,7 @@
     if (path !== state.path) return;
     if (suppressWatch > 0) return;
     if (state.modified) {
-      toast('파일이 디스크에서 변경되었지만, 저장하지 않은 편집이 있어 반영하지 않았습니다');
+      toast(t('toastWatchModified'));
       return;
     }
     if (state.sourceMode) {
@@ -772,13 +906,14 @@
     setTimeout(() => el.dot.classList.remove('flash'), 1200);
   });
 
-  window.api.onOpenError(({ message }) => toast(`파일을 열 수 없습니다: ${message}`));
+  window.api.onOpenError(({ message }) => toast(t('toastOpenFail', message)));
 
   /* ---------- Init ---------- */
 
   (async () => {
     document.body.classList.add('platform-' + window.api.platform);
     const s = await window.api.getSettings();
+    applyLang(s.lang || 'ko', { persist: false });
     await setTheme(s.theme || 'light', { persist: false });
     if (typeof s.zoom === 'number') setZoom(s.zoom, { persist: false });
     applyFont(s.font || 'pretendard', { persist: false });

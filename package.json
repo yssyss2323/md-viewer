@@ -1,7 +1,7 @@
 {
   "name": "mdviewr",
-  "productName": "MD Viewer",
-  "version": "1.7.0",
+  "productName": "Mymd",
+  "version": "1.8.0",
   "description": "A clean, distraction-free markdown viewer",
   "main": "main.js",
   "scripts": {
@@ -17,8 +17,8 @@
   "license": "MIT",
   "type": "commonjs",
   "build": {
-    "appId": "kr.labq.mdviewer",
-    "productName": "MD Viewer",
+    "appId": "kr.labq.mymd",
+    "productName": "Mymd",
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -58,7 +58,7 @@
       "allowToChangeInstallationDirectory": true,
       "perMachine": false,
       "createDesktopShortcut": true,
-      "shortcutName": "MD Viewer"
+      "shortcutName": "Mymd"
     },
     "mac": {
       "target": [

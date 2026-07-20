@@ -89,9 +89,6 @@ contextBridge.exposeInMainWorld('api', {
   clearRecent: () => ipcRenderer.invoke('recent:clear'),
   exportPdf: (name) => ipcRenderer.invoke('pdf:export', name),
 
-  findStart: (text, forward, findNext) => ipcRenderer.send('find:start', { text, forward, findNext }),
-  findStop: (action) => ipcRenderer.send('find:stop', action),
-
   openExternal: (url) => ipcRenderer.send('shell:openExternal', url),
   showInFolder: (p) => ipcRenderer.send('shell:showInFolder', p),
 
@@ -112,5 +109,4 @@ contextBridge.exposeInMainWorld('api', {
   onOpenFile: (cb) => ipcRenderer.on('open-file', (_e, data) => cb(data)),
   onFileChanged: (cb) => ipcRenderer.on('file-changed', (_e, data) => cb(data)),
   onOpenError: (cb) => ipcRenderer.on('open-error', (_e, data) => cb(data)),
-  onFindResult: (cb) => ipcRenderer.on('find-result', (_e, data) => cb(data)),
 });

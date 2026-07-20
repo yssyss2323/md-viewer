@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="docs/logo.png" width="112" alt="MD Viewer logo" />
+  <img src="docs/logo.png" width="112" alt="Mymd logo" />
 </p>
 
-<h1 align="center">MD Viewer</h1>
+<h1 align="center">Mymd</h1>
 
-A clean, distraction-free markdown viewer for Windows and macOS, built with Electron. Focused on whitespace and typography.
+A clean, distraction-free markdown viewer for Windows and macOS, built with Electron. Focused on whitespace and typography. (Interface available in Korean and English.)
 
 | Light | Dark |
 | --- | --- |
@@ -14,15 +14,15 @@ A clean, distraction-free markdown viewer for Windows and macOS, built with Elec
 
 Grab the latest installer from the [**Releases**](https://github.com/yssyss2323/md-viewer/releases/latest) page:
 
-- **Windows** — `MD Viewer Setup <version>.exe`
-- **macOS (Apple Silicon, M1+)** — `MD Viewer-<version>-arm64.dmg`
-- **macOS (Intel)** — `MD Viewer-<version>.dmg`
+- **Windows** — `Mymd Setup <version>.exe`
+- **macOS (Apple Silicon, M1+)** — `Mymd-<version>-arm64.dmg`
+- **macOS (Intel)** — `Mymd-<version>.dmg`
 
 > **macOS note:** the app is not signed with an Apple Developer certificate, so
-> on first launch macOS shows *"MD Viewer can't be opened because Apple cannot
+> on first launch macOS shows *"Mymd can't be opened because Apple cannot
 > check it for malicious software."* Right-click the app in Applications →
 > **Open** → **Open**, and macOS will remember the choice. (Or run
-> `xattr -dr com.apple.quarantine "/Applications/MD Viewer.app"`.)
+> `xattr -dr com.apple.quarantine "/Applications/Mymd.app"`.)
 
 ## Getting Started
 
@@ -69,7 +69,7 @@ npm run dist       # Windows installer (.exe)  — run on Windows
 npm run dist:mac   # macOS disk image (.dmg)    — run on macOS
 ```
 
-The Windows build produces an NSIS installer at `dist\MD Viewer Setup <version>.exe`; installing associates `.md` / `.markdown` files with MD Viewer.
+The Windows build produces an NSIS installer at `dist\Mymd Setup <version>.exe`; installing associates `.md` / `.markdown` files with Mymd.
 
 ### Automated releases (CI/CD)
 

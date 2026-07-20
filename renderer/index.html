@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self' file:; script-src 'self' file:; style-src 'self' file: 'unsafe-inline'; img-src 'self' file: mdimg: data: https: http:; font-src 'self' file: data:;" />
-  <title>MD Viewer</title>
+  <title>Mymd</title>
   <link rel="stylesheet" href="../node_modules/katex/dist/katex.min.css" />
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -12,44 +12,44 @@
 
   <header id="titlebar">
     <div class="tb-left">
-      <img id="tb-logo" src="logo.png" alt="MD Viewer" draggable="false" />
-      <button class="tb-btn" id="btn-sidebar" title="목차 (Ctrl+B)">
+      <img id="tb-logo" src="logo.png" alt="Mymd" draggable="false" />
+      <button class="tb-btn" id="btn-sidebar" data-i18n-title="ttSidebar" title="목차 (Ctrl+B)">
         <svg viewBox="0 0 16 16" width="15" height="15"><path fill="currentColor" d="M2 3.5c0-.3.2-.5.5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5Zm3 4c0-.3.2-.5.5-.5h8a.5.5 0 0 1 0 1h-8a.5.5 0 0 1-.5-.5Zm-3 4c0-.3.2-.5.5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5Z"/></svg>
       </button>
-      <span id="tb-title">MD Viewer</span>
-      <span id="tb-dot" class="hidden" title="파일이 변경되어 새로고침됨"></span>
+      <span id="tb-title">Mymd</span>
+      <span id="tb-dot" class="hidden"></span>
     </div>
     <div class="tb-end">
       <div class="tb-right">
-      <button class="tb-btn" id="btn-open" title="파일 열기 (Ctrl+O)">
+      <button class="tb-btn" id="btn-open" data-i18n-title="ttOpen" title="파일 열기 (Ctrl+O)">
         <svg viewBox="0 0 16 16" width="15" height="15"><path fill="currentColor" d="M1.5 3A1.5 1.5 0 0 1 3 1.5h3.1c.4 0 .78.16 1.06.44l1 1c.1.1.22.15.35.15H13A1.5 1.5 0 0 1 14.5 4.6l-.02.15-1.2 7A1.5 1.5 0 0 1 11.8 13H3.5A2 2 0 0 1 1.5 11V3Zm1 3.5V11a1 1 0 0 0 1 1h.05L2.6 6.9a.5.5 0 0 1 .49-.4H2.5Zm.86 5.5h8.44a.5.5 0 0 0 .49-.42l1.13-6.58H4.14L3.36 12ZM3 2.5a.5.5 0 0 0-.5.5v2h10.29l.07-.4a.5.5 0 0 0-.49-.6H8.5c-.4 0-.78-.16-1.06-.44l-1-1a.5.5 0 0 0-.35-.15H3Z" opacity=".9"/></svg>
       </button>
-      <button class="tb-btn" id="btn-source" title="원문 보기/편집 (Ctrl+E)">
+      <button class="tb-btn" id="btn-source" data-i18n-title="ttSource" title="원문 보기/편집 (Ctrl+E)">
         <svg viewBox="0 0 16 16" width="15" height="15"><path fill="currentColor" d="M5.85 4.15a.5.5 0 0 1 0 .7L2.71 8l3.14 3.15a.5.5 0 1 1-.7.7l-3.5-3.5a.5.5 0 0 1 0-.7l3.5-3.5a.5.5 0 0 1 .7 0Zm4.3 0a.5.5 0 0 0 0 .7L13.29 8l-3.14 3.15a.5.5 0 1 0 .7.7l3.5-3.5a.5.5 0 0 0 0-.7l-3.5-3.5a.5.5 0 0 0-.7 0Z"/></svg>
       </button>
-      <button class="tb-btn" id="btn-search" title="찾기 (Ctrl+F)">
+      <button class="tb-btn" id="btn-search" data-i18n-title="ttFind" title="찾기 (Ctrl+F)">
         <svg viewBox="0 0 16 16" width="15" height="15"><path fill="currentColor" d="M11.7 10.3a5.5 5.5 0 1 0-1.4 1.4l2.65 2.65a1 1 0 0 0 1.4-1.4L11.7 10.3ZM7 11.5a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9Z" opacity=".9" fill-rule="evenodd"/></svg>
       </button>
-      <button class="tb-btn" id="btn-pdf" title="PDF로 내보내기 (Ctrl+P)">
+      <button class="tb-btn" id="btn-pdf" data-i18n-title="ttPdf" title="PDF로 내보내기 (Ctrl+P)">
         <svg viewBox="0 0 16 16" width="15" height="15"><path fill="currentColor" d="M8 1.5c.28 0 .5.22.5.5v6.79l2.15-2.14a.5.5 0 0 1 .7.7l-3 3a.5.5 0 0 1-.7 0l-3-3a.5.5 0 1 1 .7-.7L7.5 8.79V2c0-.28.22-.5.5-.5ZM3 10.5a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-2a.5.5 0 0 1 1 0v2A1.5 1.5 0 0 1 12 14.5H4A1.5 1.5 0 0 1 2.5 13v-2a.5.5 0 0 1 .5-.5Z"/></svg>
       </button>
-      <button class="tb-btn" id="btn-font" title="글꼴">
+      <button class="tb-btn" id="btn-font" data-i18n-title="ttFont" title="글꼴">
         <svg viewBox="0 0 16 16" width="15" height="15"><path fill="currentColor" d="M6.4 2.5a.6.6 0 0 1 .56.38l3.5 9a.6.6 0 0 1-1.12.44L8.4 9.9H4.4l-.94 2.42a.6.6 0 1 1-1.12-.44l3.5-9A.6.6 0 0 1 6.4 2.5Zm0 2.25L4.87 8.7h3.06L6.4 4.75ZM12.1 6.5c1.05 0 1.9.85 1.9 1.9v3.4a.55.55 0 0 1-1.06.2 1.9 1.9 0 0 1-1.04.3 1.6 1.6 0 0 1 0-3.2c.38 0 .73.13 1 .35v-.05a.85.85 0 0 0-.85-.85 1.5 1.5 0 0 0-.72.18.55.55 0 0 1-.52-.97 2.6 2.6 0 0 1 1.24-.31Zm-.2 3.5a.6.6 0 1 0 0 1.2.85.85 0 0 0 .85-.6.9.9 0 0 0-.85-.6Z"/></svg>
       </button>
-      <button class="tb-btn" id="btn-theme" title="테마 전환 (Ctrl+Shift+L)">
+      <button class="tb-btn" id="btn-theme" data-i18n-title="ttTheme" title="테마 전환 (Ctrl+Shift+L)">
         <svg id="icon-moon" viewBox="0 0 16 16" width="15" height="15"><path fill="currentColor" d="M6.2 1.9a.4.4 0 0 1 .47.52A5.6 5.6 0 0 0 13.3 9.6a.4.4 0 0 1 .52.47A6.5 6.5 0 1 1 6.2 1.9Z"/></svg>
         <svg id="icon-sun" viewBox="0 0 16 16" width="15" height="15" class="hidden"><path fill="currentColor" d="M8 1a.5.5 0 0 1 .5.5V3a.5.5 0 0 1-1 0V1.5A.5.5 0 0 1 8 1Zm0 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm0 2a.5.5 0 0 1 .5.5V15a.5.5 0 0 1-1 0v-1.5A.5.5 0 0 1 8 13Zm7-5a.5.5 0 0 1-.5.5H13a.5.5 0 0 1 0-1h1.5a.5.5 0 0 1 .5.5ZM3 8a.5.5 0 0 1-.5.5H1a.5.5 0 0 1 0-1h1.5A.5.5 0 0 1 3 8Zm9.66-4.95a.5.5 0 0 1 0 .7l-1.06 1.07a.5.5 0 1 1-.71-.71l1.06-1.06a.5.5 0 0 1 .71 0ZM5.11 11.6a.5.5 0 0 1 0 .7l-1.06 1.07a.5.5 0 0 1-.71-.71l1.06-1.06a.5.5 0 0 1 .71 0Zm7.55 1.77a.5.5 0 0 1-.71 0l-1.06-1.07a.5.5 0 0 1 .7-.7l1.07 1.06a.5.5 0 0 1 0 .7ZM5.11 4.4a.5.5 0 0 1-.7 0L3.33 3.35a.5.5 0 1 1 .71-.71L5.11 3.7a.5.5 0 0 1 0 .71Z"/></svg>
       </button>
       </div>
       <div id="win-controls">
-        <button class="wc-btn" id="wc-min" title="최소화" tabindex="-1">
+        <button class="wc-btn" id="wc-min" data-i18n-title="ttMinimize" title="최소화" tabindex="-1">
           <svg viewBox="0 0 10 10" width="10" height="10"><path stroke="currentColor" stroke-width="1" d="M0 5h10"/></svg>
         </button>
-        <button class="wc-btn" id="wc-max" title="최대화" tabindex="-1">
+        <button class="wc-btn" id="wc-max" data-i18n-title="ttMaximize" title="최대화" tabindex="-1">
           <svg class="wc-ico-max" viewBox="0 0 10 10" width="10" height="10"><rect x="0.5" y="0.5" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1"/></svg>
           <svg class="wc-ico-restore hidden" viewBox="0 0 10 10" width="10" height="10"><path fill="none" stroke="currentColor" stroke-width="1" d="M2.5 2.5V0.5h7v7h-2M0.5 2.5h7v7h-7z"/></svg>
         </button>
-        <button class="wc-btn wc-close" id="wc-close" title="닫기" tabindex="-1">
+        <button class="wc-btn wc-close" id="wc-close" data-i18n-title="ttClose" title="닫기" tabindex="-1">
           <svg viewBox="0 0 10 10" width="10" height="10"><path stroke="currentColor" stroke-width="1" d="M0 0l10 10M10 0L0 10"/></svg>
         </button>
       </div>
@@ -57,57 +57,62 @@
   </header>
 
   <div id="font-menu" class="hidden">
-    <div class="fm-section">기본 글꼴</div>
+    <div class="fm-section" data-i18n="secBundledFonts">기본 글꼴</div>
     <button class="fm-item" data-font="pretendard" style="font-family:'Pretendard'">Pretendard 프리텐다드 <span class="fm-check">✓</span></button>
     <button class="fm-item" data-font="nanum-myeongjo" style="font-family:'Nanum Myeongjo'">나눔명조 Serif <span class="fm-check">✓</span></button>
     <button class="fm-item" data-font="gowun-dodum" style="font-family:'Gowun Dodum'">고운돋움 Rounded <span class="fm-check">✓</span></button>
-    <button class="fm-item" data-font="system">시스템 기본 <span class="fm-check">✓</span></button>
-    <div class="fm-section">내 컴퓨터 글꼴</div>
-    <input id="fm-search" type="text" placeholder="설치된 글꼴 검색…" spellcheck="false" />
+    <button class="fm-item" data-font="system"><span data-i18n="fontSystem">시스템 기본</span> <span class="fm-check">✓</span></button>
+    <div class="fm-section" data-i18n="secSystemFonts">내 컴퓨터 글꼴</div>
+    <input id="fm-search" type="text" data-i18n-ph="phFontSearch" placeholder="설치된 글꼴 검색…" spellcheck="false" />
     <div id="fm-syslist"></div>
-    <div class="fm-section">글자 크기</div>
+    <div class="fm-section" data-i18n="secFontSize">글자 크기</div>
     <div class="fm-size">
-      <button id="fm-size-down" title="작게">A−</button>
+      <button id="fm-size-down" data-i18n-title="ttSmaller" title="작게">A−</button>
       <span id="fm-size-val">100%</span>
-      <button id="fm-size-up" title="크게">A+</button>
+      <button id="fm-size-up" data-i18n-title="ttLarger" title="크게">A+</button>
     </div>
-    <div class="fm-section">본문 너비</div>
+    <div class="fm-section" data-i18n="secContentWidth">본문 너비</div>
     <div class="fm-size">
-      <button id="fm-width-down" title="좁게">−</button>
+      <button id="fm-width-down" data-i18n-title="ttNarrower" title="좁게">−</button>
       <span id="fm-width-val">752px</span>
-      <button id="fm-width-up" title="넓게">+</button>
+      <button id="fm-width-up" data-i18n-title="ttWider" title="넓게">+</button>
+    </div>
+    <div class="fm-section" data-i18n="secLanguage">언어 / Language</div>
+    <div class="fm-lang-row">
+      <button class="fm-lang" data-lang="ko">한국어</button>
+      <button class="fm-lang" data-lang="en">English</button>
     </div>
   </div>
 
   <div id="find-bar" class="hidden">
-    <input id="find-input" type="text" placeholder="찾기…" spellcheck="false" />
+    <input id="find-input" type="text" data-i18n-ph="phFind" placeholder="찾기…" spellcheck="false" />
     <span id="find-count"></span>
-    <button class="tb-btn" id="find-prev" title="이전 (Shift+Enter)">
+    <button class="tb-btn" id="find-prev" data-i18n-title="ttFindPrev" title="이전 (Shift+Enter)">
       <svg viewBox="0 0 16 16" width="13" height="13"><path fill="currentColor" d="M8 5.3 3.65 9.65a.5.5 0 0 0 .7.7L8 6.71l3.65 3.64a.5.5 0 0 0 .7-.7L8 5.29Z"/></svg>
     </button>
-    <button class="tb-btn" id="find-next" title="다음 (Enter)">
+    <button class="tb-btn" id="find-next" data-i18n-title="ttFindNext" title="다음 (Enter)">
       <svg viewBox="0 0 16 16" width="13" height="13"><path fill="currentColor" d="m8 10.7 4.35-4.35a.5.5 0 0 0-.7-.7L8 9.29 4.35 5.65a.5.5 0 1 0-.7.7L8 10.71Z"/></svg>
     </button>
-    <button class="tb-btn" id="find-close" title="닫기 (Esc)">
+    <button class="tb-btn" id="find-close" data-i18n-title="ttFindClose" title="닫기 (Esc)">
       <svg viewBox="0 0 16 16" width="13" height="13"><path fill="currentColor" d="M4.05 4.05a.5.5 0 0 1 .7 0L8 7.29l3.25-3.24a.5.5 0 1 1 .7.7L8.71 8l3.24 3.25a.5.5 0 0 1-.7.7L8 8.71l-3.25 3.24a.5.5 0 0 1-.7-.7L7.29 8 4.05 4.75a.5.5 0 0 1 0-.7Z"/></svg>
     </button>
   </div>
 
   <div id="layout">
     <aside id="sidebar" class="collapsed">
-      <div id="outline-header">목차</div>
+      <div id="outline-header" data-i18n="outline">목차</div>
       <nav id="outline"></nav>
     </aside>
 
     <main id="content-scroll">
       <div id="welcome">
         <div class="welcome-inner">
-          <img class="welcome-logo" src="logo.png" alt="MD Viewer" draggable="false" />
-          <h1>MD Viewer</h1>
-          <p class="welcome-sub">마크다운 파일을 열거나 창으로 끌어다 놓으세요</p>
-          <button id="welcome-open">파일 열기 <kbd>Ctrl+O</kbd></button>
+          <img class="welcome-logo" src="logo.png" alt="Mymd" draggable="false" />
+          <h1>Mymd</h1>
+          <p class="welcome-sub" data-i18n="welcomeSub">마크다운 파일을 열거나 창으로 끌어다 놓으세요</p>
+          <button id="welcome-open"><span data-i18n="openFile">파일 열기</span> <kbd>Ctrl+O</kbd></button>
           <div id="recent-section" class="hidden">
-            <div class="recent-title">최근 파일</div>
+            <div class="recent-title" data-i18n="recentFiles">최근 파일</div>
             <ul id="recent-list"></ul>
           </div>
         </div>
@@ -120,11 +125,11 @@
   </div>
 
   <footer id="statusbar" class="hidden">
-    <span id="status-path" title="클릭하면 폴더에서 보기"></span>
+    <span id="status-path" data-i18n-title="ttShowInFolder" title="클릭하면 폴더에서 보기"></span>
     <span id="status-stats"></span>
   </footer>
 
-  <div id="drop-overlay" class="hidden"><div>파일을 놓아서 열기</div></div>
+  <div id="drop-overlay" class="hidden"><div data-i18n="dropHere">파일을 놓아서 열기</div></div>
   <div id="toast" class="hidden"></div>
 
   <script src="../node_modules/dompurify/dist/purify.min.js"></script>
