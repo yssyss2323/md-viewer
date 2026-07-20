@@ -82,6 +82,7 @@ contextBridge.exposeInMainWorld('api', {
   openDialog: () => ipcRenderer.invoke('dialog:open'),
   openFile: (p) => ipcRenderer.invoke('file:open', p),
   saveFile: (p, content) => ipcRenderer.invoke('file:save', { path: p, content }),
+  confirmUnsaved: () => ipcRenderer.invoke('dialog:unsaved'),
   listFonts: () => ipcRenderer.invoke('fonts:list'),
   getSettings: () => ipcRenderer.invoke('settings:get'),
   setSettings: (patch) => ipcRenderer.invoke('settings:set', patch),

@@ -37,6 +37,7 @@
     zoom: 0,
     font: 'pretendard',
     fontScale: 1,
+    contentWidth: 47,
     sidebarOpen: false,
     headings: [],
   };
@@ -85,7 +86,7 @@
     if (fromDisk) {
       state.savedRaw = content;
       setModified(false);
-      if (state.sourceMode) setSourceMode(false, { applyEdits: false });
+      if (state.sourceMode) setSourceMode(false, { applyEdits: false, prompt: false });
     }
 
     const baseDir = window.api.dirname(path);
@@ -347,12 +348,26 @@
     el.dot.title = on ? '저장되지 않은 변경 (Ctrl+S)' : '';
   }
 
-  function setSourceMode(on, { applyEdits = true } = {}) {
+  async function setSourceMode(on, { applyEdits = true, prompt = true } = {}) {
     if (on && !state.path) {
       toast('먼저 파일을 열어주세요');
       return;
     }
     if (on === state.sourceMode) return;
+
+    // Leaving the editor with unsaved edits: offer to save / discard / cancel.
+    if (!on && prompt && state.modified) {
+      const choice = await window.api.confirmUnsaved();
+      if (choice === 2) return; // cancel — stay in the editor
+      if (choice === 0) {
+        await saveFile();
+      } else {
+        state.raw = state.savedRaw;
+        el.editor.value = state.savedRaw;
+        setModified(false);
+      }
+    }
+
     state.sourceMode = on;
     $('#btn-source').classList.toggle('active', on);
     if (on) {
@@ -364,9 +379,8 @@
     } else {
       el.sourceView.classList.add('hidden');
       el.content.classList.remove('hidden');
-      if (applyEdits && el.editor.value !== state.raw) {
-        display(state.path, el.editor.value, { keepScroll: true, fromDisk: false });
-      }
+      // Always re-render so the viewer reflects the current source text.
+      if (applyEdits) display(state.path, state.raw, { keepScroll: true, fromDisk: false });
     }
   }
 
@@ -439,6 +453,14 @@
     if (persist) window.api.setSettings({ font: key });
   }
 
+  function applyContentWidth(rem, { persist = true } = {}) {
+    state.contentWidth = Math.max(34, Math.min(100, Math.round(rem)));
+    el.body.style.setProperty('--content-w', state.contentWidth + 'rem');
+    const val = $('#fm-width-val');
+    if (val) val.textContent = Math.round(state.contentWidth * 16) + 'px';
+    if (persist) window.api.setSettings({ contentWidth: state.contentWidth });
+  }
+
   let sysFontsLoaded = false;
   async function loadSystemFonts() {
     if (sysFontsLoaded) return;
@@ -501,6 +523,8 @@
   });
   $('#fm-size-down').addEventListener('click', () => applyFontScale(state.fontScale - 0.1));
   $('#fm-size-up').addEventListener('click', () => applyFontScale(state.fontScale + 0.1));
+  $('#fm-width-down').addEventListener('click', () => applyContentWidth(state.contentWidth - 4));
+  $('#fm-width-up').addEventListener('click', () => applyContentWidth(state.contentWidth + 4));
   document.addEventListener('click', (e) => {
     if (fontMenuOpen && !e.target.closest('#font-menu') && !e.target.closest('#btn-font')) {
       toggleFontMenu(false);
@@ -644,7 +668,7 @@
       toast('먼저 파일을 열어주세요');
       return;
     }
-    if (state.sourceMode) setSourceMode(false);
+    if (state.sourceMode) await setSourceMode(false, { prompt: false });
     const name = window.api.basename(state.path).replace(/\.[^.]+$/, '') + '.pdf';
     toast('PDF 생성 중…', 8000);
     const res = await window.api.exportPdf(name);
@@ -759,6 +783,7 @@
     if (typeof s.zoom === 'number') setZoom(s.zoom, { persist: false });
     applyFont(s.font || 'pretendard', { persist: false });
     applyFontScale(typeof s.fontScale === 'number' ? s.fontScale : 1, { persist: false });
+    applyContentWidth(typeof s.contentWidth === 'number' ? s.contentWidth : 47, { persist: false });
     refreshRecent();
   })();
 })();

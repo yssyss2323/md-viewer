@@ -38,7 +38,7 @@ You can also drag and drop a markdown file onto the window.
 - Clean rendering with light / dark themes
 - One window per file — open several documents side by side (they group under one taskbar/dock icon); opening a file already shown just focuses its window
 - Source view with inline editing — save with `Ctrl+S`
-- Choose a reading font — bundled Pretendard (default), Nanum Myeongjo, Gowun Dodum, or **any font installed on your computer** (searchable) — and adjust the font size
+- Choose a reading font — bundled Pretendard (default), Nanum Myeongjo, Gowun Dodum, or **any font installed on your computer** (searchable) — and adjust the font size and content width
 - Local images (including relative paths and non-ASCII filenames) render inline
 - Outline sidebar with scroll-position highlighting
 - Syntax-highlighted code blocks with a copy button

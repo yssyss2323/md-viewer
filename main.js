@@ -422,6 +422,21 @@ ipcMain.handle('file:save', (_e, { path: filePath, content }) => {
   return true;
 });
 
+// 0 = save, 1 = don't save, 2 = cancel
+ipcMain.handle('dialog:unsaved', async (event) => {
+  const win = senderWindow(event);
+  const { response } = await dialog.showMessageBox(win, {
+    type: 'warning',
+    buttons: ['저장', '저장 안 함', '취소'],
+    defaultId: 0,
+    cancelId: 2,
+    noLink: true,
+    message: '저장하지 않은 변경 사항이 있습니다.',
+    detail: '편집한 내용을 저장할까요?',
+  });
+  return response;
+});
+
 ipcMain.handle('fonts:list', async () => {
   try {
     const list = await require('font-list').getFonts({ disableQuoting: true });

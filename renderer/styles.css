@@ -11,9 +11,9 @@
 @font-face { font-family: 'Nanum Myeongjo'; font-weight: 400; font-display: swap; src: url('fonts/nanum-myeongjo-korean-400.woff2') format('woff2'); unicode-range: U+1100-11FF, U+3130-318F, U+A960-A97F, U+AC00-D7A3, U+D7B0-D7FF; }
 @font-face { font-family: 'Nanum Myeongjo'; font-weight: 700; font-display: swap; src: url('fonts/nanum-myeongjo-latin-700.woff2') format('woff2'); }
 @font-face { font-family: 'Nanum Myeongjo'; font-weight: 700; font-display: swap; src: url('fonts/nanum-myeongjo-korean-700.woff2') format('woff2'); unicode-range: U+1100-11FF, U+3130-318F, U+A960-A97F, U+AC00-D7A3, U+D7B0-D7FF; }
-/* Gowun Dodum (rounded sans, single weight) */
-@font-face { font-family: 'Gowun Dodum'; font-weight: 400 700; font-display: swap; src: url('fonts/gowun-dodum-latin-400.woff2') format('woff2'); }
-@font-face { font-family: 'Gowun Dodum'; font-weight: 400 700; font-display: swap; src: url('fonts/gowun-dodum-korean-400.woff2') format('woff2'); unicode-range: U+1100-11FF, U+3130-318F, U+A960-A97F, U+AC00-D7A3, U+D7B0-D7FF; }
+/* Gowun Dodum (rounded sans, single 400 weight — bold is synthesized) */
+@font-face { font-family: 'Gowun Dodum'; font-weight: 400; font-display: swap; src: url('fonts/gowun-dodum-latin-400.woff2') format('woff2'); }
+@font-face { font-family: 'Gowun Dodum'; font-weight: 400; font-display: swap; src: url('fonts/gowun-dodum-korean-400.woff2') format('woff2'); unicode-range: U+1100-11FF, U+3130-318F, U+A960-A97F, U+AC00-D7A3, U+D7B0-D7FF; }
 
 /* ---------- Theme tokens ---------- */
 :root {
@@ -585,6 +585,9 @@ body.platform-darwin #tb-logo { margin-left: 0; }
   line-height: 1.8;
   letter-spacing: -0.003em;
   word-break: break-word;
+  /* Allow faux bold/italic for fonts that lack those styles, so **bold**
+     still renders with single-weight fonts (e.g. Gowun Dodum). */
+  font-synthesis: weight style;
 }
 
 .markdown-body > :first-child { margin-top: 0; }
