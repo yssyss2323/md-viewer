@@ -35,6 +35,8 @@
     sourceMode: false,
     theme: 'light',
     zoom: 0,
+    font: 'system',
+    fontScale: 1,
     sidebarOpen: false,
     headings: [],
   };
@@ -408,6 +410,56 @@
     return !state.modified || window.confirm('저장하지 않은 변경 사항이 있습니다. 버리고 계속할까요?');
   }
 
+  /* ---------- Reading font ---------- */
+
+  const FONTS = {
+    system: 'var(--font-sans)',
+    pretendard: "'Pretendard', var(--font-sans)",
+    'nanum-myeongjo': "'Nanum Myeongjo', serif",
+    'gowun-dodum': "'Gowun Dodum', var(--font-sans)",
+  };
+
+  function applyFont(key, { persist = true } = {}) {
+    if (!FONTS[key]) key = 'system';
+    state.font = key;
+    if (key === 'system') el.body.style.removeProperty('--reading-font');
+    else el.body.style.setProperty('--reading-font', FONTS[key]);
+    document.querySelectorAll('.fm-item').forEach((it) => {
+      it.classList.toggle('active', it.dataset.font === key);
+    });
+    if (persist) window.api.setSettings({ font: key });
+  }
+
+  function applyFontScale(scale, { persist = true } = {}) {
+    state.fontScale = Math.max(0.8, Math.min(1.6, Math.round(scale * 100) / 100));
+    el.body.style.setProperty('--reading-scale', String(state.fontScale));
+    const val = $('#fm-size-val');
+    if (val) val.textContent = Math.round(state.fontScale * 100) + '%';
+    if (persist) window.api.setSettings({ fontScale: state.fontScale });
+  }
+
+  let fontMenuOpen = false;
+  function toggleFontMenu(open) {
+    fontMenuOpen = open ?? !fontMenuOpen;
+    $('#font-menu').classList.toggle('hidden', !fontMenuOpen);
+    $('#btn-font').classList.toggle('active', fontMenuOpen);
+  }
+
+  $('#btn-font').addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleFontMenu();
+  });
+  document.querySelectorAll('.fm-item').forEach((it) => {
+    it.addEventListener('click', () => applyFont(it.dataset.font));
+  });
+  $('#fm-size-down').addEventListener('click', () => applyFontScale(state.fontScale - 0.1));
+  $('#fm-size-up').addEventListener('click', () => applyFontScale(state.fontScale + 0.1));
+  document.addEventListener('click', (e) => {
+    if (fontMenuOpen && !e.target.closest('#font-menu') && !e.target.closest('#btn-font')) {
+      toggleFontMenu(false);
+    }
+  });
+
   /* ---------- Sidebar / theme / zoom ---------- */
 
   function setSidebar(open) {
@@ -522,6 +574,24 @@
     if (state.path) window.api.showInFolder(state.path);
   });
 
+  /* ---------- Window caption controls (Windows) ---------- */
+
+  $('#wc-min').addEventListener('click', () => window.api.minimizeWindow());
+  $('#wc-max').addEventListener('click', () => window.api.toggleMaximizeWindow());
+  $('#wc-close').addEventListener('click', () => window.api.closeWindow());
+
+  $('#titlebar').addEventListener('dblclick', (e) => {
+    if (window.api.platform === 'darwin') return; // macOS handles this natively
+    if (e.target.closest('button, #win-controls')) return;
+    window.api.toggleMaximizeWindow();
+  });
+
+  window.api.onWindowState(({ maximized }) => {
+    $('.wc-ico-max').classList.toggle('hidden', maximized);
+    $('.wc-ico-restore').classList.toggle('hidden', !maximized);
+    $('#wc-max').title = maximized ? '이전 크기로' : '최대화';
+  });
+
   async function exportPdf() {
     if (!state.path) {
       toast('먼저 파일을 열어주세요');
@@ -540,6 +610,10 @@
 
   window.addEventListener('keydown', (e) => {
     const ctrl = e.ctrlKey || e.metaKey;
+    if (e.key === 'Escape' && fontMenuOpen) {
+      toggleFontMenu(false);
+      return;
+    }
     if (e.key === 'Escape' && findOpen) {
       closeFind();
       return;
@@ -636,6 +710,8 @@
     const s = await window.api.getSettings();
     await setTheme(s.theme || 'light', { persist: false });
     if (typeof s.zoom === 'number') setZoom(s.zoom, { persist: false });
+    applyFont(s.font || 'system', { persist: false });
+    applyFontScale(typeof s.fontScale === 'number' ? s.fontScale : 1, { persist: false });
     refreshRecent();
   })();
 })();

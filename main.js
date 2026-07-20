@@ -95,12 +95,6 @@ function stopWatching(win) {
 
 // ---------- Window creation ----------
 
-function overlayFor(theme) {
-  return theme === 'dark'
-    ? { color: '#00000000', symbolColor: '#9aa0a8', height: 44 }
-    : { color: '#00000000', symbolColor: '#57606a', height: 44 };
-}
-
 /** Load a file into a specific window and begin watching it. */
 function loadFileInto(win, filePath) {
   try {
@@ -116,27 +110,43 @@ function loadFileInto(win, filePath) {
 
 function createWindow(filePath) {
   const settings = loadSettings();
-  const win = new BrowserWindow({
+  const opts = {
     width: 1160,
     height: 800,
     minWidth: 480,
     minHeight: 320,
     show: false,
     backgroundColor: settings.theme === 'dark' ? '#1b1e23' : '#ffffff',
-    titleBarStyle: isMac ? 'hiddenInset' : 'hidden',
-    titleBarOverlay: isMac ? false : overlayFor(settings.theme),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
       spellcheck: false,
+      // Keep painting at full rate during window animations.
+      backgroundThrottling: false,
     },
-  });
+  };
+  // macOS keeps the native frame (smooth maximize) with inset traffic lights.
+  // Windows uses a fully frameless window with custom caption buttons so that
+  // maximize/restore is an instant resize — the native animated maximize made
+  // the web contents lag a frame behind, showing a stutter/ghosting artifact.
+  if (isMac) opts.titleBarStyle = 'hiddenInset';
+  else opts.frame = false;
+
+  const win = new BrowserWindow(opts);
 
   win.mdPath = null;
   win.__watcher = null;
   windows.add(win);
+
+  const sendWindowState = () => {
+    if (!win.isDestroyed()) {
+      win.webContents.send('window-state', { maximized: win.isMaximized() });
+    }
+  };
+  win.on('maximize', sendWindowState);
+  win.on('unmaximize', sendWindowState);
 
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
   win.once('ready-to-show', () => win.show());
@@ -146,6 +156,7 @@ function createWindow(filePath) {
       loadFileInto(win, filePath);
       filePath = null; // only on first load
     }
+    sendWindowState();
     maybeRunScreenshot(win);
   });
 
@@ -343,13 +354,27 @@ ipcMain.handle('settings:set', (_e, patch) => {
   if (patch.theme) {
     for (const w of windows) {
       if (w.isDestroyed()) continue;
-      if (!isMac) {
-        try { w.setTitleBarOverlay(overlayFor(patch.theme)); } catch {}
-      }
       w.setBackgroundColor(patch.theme === 'dark' ? '#1b1e23' : '#ffffff');
     }
   }
   return s;
+});
+
+ipcMain.on('win:minimize', (event) => {
+  const win = senderWindow(event);
+  if (win) win.minimize();
+});
+
+ipcMain.on('win:toggle-maximize', (event) => {
+  const win = senderWindow(event);
+  if (!win) return;
+  if (win.isMaximized()) win.unmaximize();
+  else win.maximize();
+});
+
+ipcMain.on('win:close', (event) => {
+  const win = senderWindow(event);
+  if (win) win.close();
 });
 
 ipcMain.handle('recent:clear', () => {

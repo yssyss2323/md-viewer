@@ -93,6 +93,11 @@ contextBridge.exposeInMainWorld('api', {
   openExternal: (url) => ipcRenderer.send('shell:openExternal', url),
   showInFolder: (p) => ipcRenderer.send('shell:showInFolder', p),
 
+  minimizeWindow: () => ipcRenderer.send('win:minimize'),
+  toggleMaximizeWindow: () => ipcRenderer.send('win:toggle-maximize'),
+  closeWindow: () => ipcRenderer.send('win:close'),
+  onWindowState: (cb) => ipcRenderer.on('window-state', (_e, data) => cb(data)),
+
   imageDataUrl: (src, baseDir) => imageDataUrl(src, baseDir),
   pathForFile: (file) => webUtils.getPathForFile(file),
   dirname: (p) => path.dirname(p),

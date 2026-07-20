@@ -1,3 +1,20 @@
+/* ---------- Bundled reading fonts ---------- */
+@font-face {
+  font-family: 'Pretendard';
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('fonts/pretendard-variable.woff2') format('woff2');
+}
+/* Nanum Myeongjo (serif): latin file is the default range; the Korean file is
+   declared after so it wins for Hangul codepoints. */
+@font-face { font-family: 'Nanum Myeongjo'; font-weight: 400; font-display: swap; src: url('fonts/nanum-myeongjo-latin-400.woff2') format('woff2'); }
+@font-face { font-family: 'Nanum Myeongjo'; font-weight: 400; font-display: swap; src: url('fonts/nanum-myeongjo-korean-400.woff2') format('woff2'); unicode-range: U+1100-11FF, U+3130-318F, U+A960-A97F, U+AC00-D7A3, U+D7B0-D7FF; }
+@font-face { font-family: 'Nanum Myeongjo'; font-weight: 700; font-display: swap; src: url('fonts/nanum-myeongjo-latin-700.woff2') format('woff2'); }
+@font-face { font-family: 'Nanum Myeongjo'; font-weight: 700; font-display: swap; src: url('fonts/nanum-myeongjo-korean-700.woff2') format('woff2'); unicode-range: U+1100-11FF, U+3130-318F, U+A960-A97F, U+AC00-D7A3, U+D7B0-D7FF; }
+/* Gowun Dodum (rounded sans, single weight) */
+@font-face { font-family: 'Gowun Dodum'; font-weight: 400 700; font-display: swap; src: url('fonts/gowun-dodum-latin-400.woff2') format('woff2'); }
+@font-face { font-family: 'Gowun Dodum'; font-weight: 400 700; font-display: swap; src: url('fonts/gowun-dodum-korean-400.woff2') format('woff2'); unicode-range: U+1100-11FF, U+3130-318F, U+A960-A97F, U+AC00-D7A3, U+D7B0-D7FF; }
+
 /* ---------- Theme tokens ---------- */
 :root {
   --font-sans: "Pretendard", "Segoe UI Variable Text", "Segoe UI", "Malgun Gothic",
@@ -104,24 +121,43 @@ button {
 #titlebar {
   position: fixed;
   top: 0;
-  left: env(titlebar-area-x, 0);
-  width: env(titlebar-area-width, 100%);
+  left: 0;
+  width: 100%;
   height: var(--titlebar-h);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 8px 0 10px;
+  padding: 0 0 0 10px;
   -webkit-app-region: drag;
   z-index: 50;
   background: var(--bg);
 }
 
-.tb-left, .tb-right {
+.tb-left, .tb-right, .tb-end {
   display: flex;
   align-items: center;
   gap: 2px;
   min-width: 0;
 }
+.tb-right { padding-right: 6px; }
+
+/* Custom window caption buttons (Windows only; macOS uses traffic lights). */
+#win-controls { display: none; height: var(--titlebar-h); -webkit-app-region: no-drag; }
+body.platform-win32 #win-controls { display: flex; }
+.wc-btn {
+  width: 46px;
+  height: var(--titlebar-h);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fg-muted);
+  border: none;
+  background: transparent;
+  transition: background 0.1s, color 0.1s;
+}
+.wc-btn:hover { background: var(--bg-hover); color: var(--fg); }
+.wc-close:hover { background: #e11d2e; color: #fff; }
+.wc-btn:focus { outline: none; }
 
 #tb-logo {
   width: 22px;
@@ -206,6 +242,62 @@ body.platform-darwin #tb-logo { margin-left: 0; }
   text-align: center;
   white-space: nowrap;
 }
+
+/* ---------- Font menu ---------- */
+#font-menu {
+  position: fixed;
+  top: calc(var(--titlebar-h) - 2px);
+  right: 12px;
+  width: 240px;
+  padding: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  z-index: 60;
+  -webkit-app-region: no-drag;
+}
+.fm-section {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+  padding: 6px 8px 4px;
+}
+.fm-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 15px;
+  color: var(--fg);
+  transition: background 0.1s;
+}
+.fm-item:hover { background: var(--bg-hover); }
+.fm-item .fm-check { color: var(--accent); opacity: 0; }
+.fm-item.active .fm-check { opacity: 1; }
+.fm-item.active { color: var(--accent); }
+.fm-size {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 4px;
+}
+.fm-size button {
+  width: 30px;
+  height: 28px;
+  border-radius: 7px;
+  background: var(--bg-soft);
+  color: var(--fg);
+  font-size: 15px;
+  transition: background 0.1s;
+}
+.fm-size button:hover { background: var(--bg-hover); }
+#fm-size-val { flex: 1; text-align: center; font-size: 12.5px; color: var(--fg-muted); }
 
 /* ---------- Layout ---------- */
 #layout {
@@ -452,7 +544,8 @@ body.platform-darwin #tb-logo { margin-left: 0; }
   max-width: var(--content-w);
   margin: 0 auto;
   padding: 40px 44px 110px;
-  font-size: 15.5px;
+  font-family: var(--reading-font, var(--font-sans));
+  font-size: calc(15.5px * var(--reading-scale, 1));
   line-height: 1.8;
   letter-spacing: -0.003em;
   word-break: break-word;
