@@ -49,7 +49,7 @@
   const I18N = {
     ko: {
       ttSidebar: '목차 (Ctrl+B)', ttOpen: '파일 열기 (Ctrl+O)', ttSource: '원문 보기/편집 (Ctrl+E)',
-      ttFind: '찾기 (Ctrl+F)', ttPdf: 'PDF로 내보내기 (Ctrl+P)', ttFont: '글꼴', ttSettings: '설정',
+      ttSave: '저장 (Ctrl+S)', ttFind: '찾기 (Ctrl+F)', ttPdf: 'PDF로 내보내기 (Ctrl+P)', ttFont: '글꼴', ttSettings: '설정',
       ttTheme: '테마 전환 (Ctrl+Shift+L)', ttMinimize: '최소화', ttMaximize: '최대화', ttRestore: '이전 크기로',
       ttClose: '닫기', secBundledFonts: '기본 글꼴', fontSystem: '시스템 기본', secSystemFonts: '내 컴퓨터 글꼴',
       phFontSearch: '설치된 글꼴 검색…', secFontSize: '글자 크기', ttSmaller: '작게', ttLarger: '크게',
@@ -70,7 +70,7 @@
     },
     en: {
       ttSidebar: 'Outline (Ctrl+B)', ttOpen: 'Open file (Ctrl+O)', ttSource: 'Source view / edit (Ctrl+E)',
-      ttFind: 'Find (Ctrl+F)', ttPdf: 'Export to PDF (Ctrl+P)', ttFont: 'Font', ttSettings: 'Settings',
+      ttSave: 'Save (Ctrl+S)', ttFind: 'Find (Ctrl+F)', ttPdf: 'Export to PDF (Ctrl+P)', ttFont: 'Font', ttSettings: 'Settings',
       ttTheme: 'Toggle theme (Ctrl+Shift+L)', ttMinimize: 'Minimize', ttMaximize: 'Maximize', ttRestore: 'Restore',
       ttClose: 'Close', secBundledFonts: 'Bundled fonts', fontSystem: 'System default', secSystemFonts: 'Installed fonts',
       phFontSearch: 'Search installed fonts…', secFontSize: 'Font size', ttSmaller: 'Smaller', ttLarger: 'Larger',
@@ -410,27 +410,30 @@
     state.modified = on;
     el.dot.classList.toggle('modified', on);
     el.dot.title = on ? t('dotModified') : '';
+    $('#btn-save').disabled = !on;
+    window.api.setDirty(on); // let main prompt on window close if unsaved
   }
 
-  async function setSourceMode(on, { applyEdits = true, prompt = true } = {}) {
+  // Keep the same relative position when switching between rendered and source
+  // views (their pixel heights differ, so map by scroll fraction).
+  function scrollFraction() {
+    const d = el.scroll.scrollHeight - el.scroll.clientHeight;
+    return d > 0 ? el.scroll.scrollTop / d : 0;
+  }
+  function restoreScrollFraction(frac) {
+    requestAnimationFrame(() => {
+      const d = el.scroll.scrollHeight - el.scroll.clientHeight;
+      el.scroll.scrollTop = frac * (d > 0 ? d : 0);
+    });
+  }
+
+  async function setSourceMode(on, { applyEdits = true } = {}) {
     if (on && !state.path) {
       toast(t('toastOpenFirst'));
       return;
     }
     if (on === state.sourceMode) return;
-
-    // Leaving the editor with unsaved edits: offer to save / discard / cancel.
-    if (!on && prompt && state.modified) {
-      const choice = await window.api.confirmUnsaved();
-      if (choice === 2) return; // cancel — stay in the editor
-      if (choice === 0) {
-        await saveFile();
-      } else {
-        state.raw = state.savedRaw;
-        el.editor.value = state.savedRaw;
-        setModified(false);
-      }
-    }
+    const frac = scrollFraction();
 
     state.sourceMode = on;
     $('#btn-source').classList.toggle('active', on);
@@ -439,13 +442,18 @@
       el.editor.value = state.raw;
       el.content.classList.add('hidden');
       el.sourceView.classList.remove('hidden');
-      el.scroll.scrollTop = 0;
-      el.editor.focus();
+      el.editor.focus({ preventScroll: true });
+      restoreScrollFraction(frac);
     } else {
       el.sourceView.classList.add('hidden');
       el.content.classList.remove('hidden');
-      // Always re-render so the viewer reflects the current source text.
-      if (applyEdits) display(state.path, state.raw, { keepScroll: true, fromDisk: false });
+      // Re-render so the viewer reflects the current source text, then keep the
+      // same relative position. (applyEdits is false only for the internal
+      // switch during a fresh file load, which manages its own scroll.)
+      if (applyEdits) {
+        await display(state.path, state.raw, { keepScroll: false, fromDisk: false });
+        restoreScrollFraction(frac);
+      }
     }
   }
 
@@ -455,10 +463,28 @@
   });
 
   el.editor.addEventListener('keydown', (e) => {
+    const ta = el.editor;
     if (e.key === 'Tab') {
       e.preventDefault();
-      el.editor.setRangeText('  ', el.editor.selectionStart, el.editor.selectionEnd, 'end');
-      el.editor.dispatchEvent(new Event('input'));
+      ta.setRangeText('  ', ta.selectionStart, ta.selectionEnd, 'end');
+      ta.dispatchEvent(new Event('input'));
+      return;
+    }
+    // Enter → insert a real markdown hard break ("  \n") so the line break is
+    // preserved when the file is opened in any other markdown viewer. Skipped
+    // inside code fences and on structural lines (lists / headings / quotes /
+    // tables), and when the line is empty or already ends with a hard break.
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && ta.selectionStart === ta.selectionEnd) {
+      const before = ta.value.slice(0, ta.selectionStart);
+      const curLine = before.slice(before.lastIndexOf('\n') + 1);
+      const inCodeFence = (before.match(/^```/gm) || []).length % 2 === 1;
+      const structural = /^\s*([-*+]\s|\d+[.)]\s|#{1,6}\s|>|\||\t| {4,})/.test(curLine);
+      const alreadyBreak = /(\s{2,}|\\)$/.test(curLine);
+      if (curLine.trim() && !inCodeFence && !structural && !alreadyBreak) {
+        e.preventDefault();
+        ta.setRangeText('  \n', ta.selectionStart, ta.selectionEnd, 'end');
+        ta.dispatchEvent(new Event('input'));
+      }
     }
   });
 
@@ -767,6 +793,7 @@
 
   $('#btn-open').addEventListener('click', openViaDialog);
   $('#welcome-open').addEventListener('click', openViaDialog);
+  $('#btn-save').addEventListener('click', () => saveFile());
   $('#btn-sidebar').addEventListener('click', () => setSidebar(!state.sidebarOpen));
   $('#btn-source').addEventListener('click', () => setSourceMode(!state.sourceMode));
   $('#btn-search').addEventListener('click', () => (findOpen ? closeFind() : openFind()));
@@ -907,6 +934,14 @@
   });
 
   window.api.onOpenError(({ message }) => toast(t('toastOpenFail', message)));
+
+  // Main asked us to save before the window closes (user chose "Save").
+  window.api.onSaveThenClose(async () => {
+    try {
+      if (state.modified) await window.api.saveFile(state.path, state.raw);
+    } catch {}
+    window.api.forceCloseWindow();
+  });
 
   /* ---------- Init ---------- */
 

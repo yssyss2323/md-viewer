@@ -214,6 +214,7 @@ body.platform-darwin #tb-logo { margin-left: 0; }
 }
 .tb-btn:hover { background: var(--bg-hover); color: var(--fg); }
 .tb-btn.active { color: var(--accent); background: var(--accent-soft); }
+.tb-btn:disabled { opacity: 0.3; pointer-events: none; }
 
 /* ---------- Find bar ---------- */
 #find-bar {

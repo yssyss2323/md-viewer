@@ -186,6 +186,8 @@ function createWindow(filePath) {
   win.__isMax = false;
   win.__normalBounds = null;
   win.__programmaticResize = false;
+  win.__dirty = false;
+  win.__forceClose = false;
 
   const sendWindowState = () => {
     if (!win.isDestroyed()) {
@@ -218,6 +220,28 @@ function createWindow(filePath) {
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https?:/i.test(url)) shell.openExternal(url);
     return { action: 'deny' };
+  });
+
+  // Prompt to save unsaved edits when the window is closed.
+  win.on('close', async (e) => {
+    if (win.__forceClose || !win.__dirty) return;
+    e.preventDefault();
+    const { response } = await dialog.showMessageBox(win, {
+      type: 'warning',
+      buttons: [mt('save'), mt('dontSave'), mt('cancel')],
+      defaultId: 0,
+      cancelId: 2,
+      noLink: true,
+      message: mt('unsavedMsg'),
+      detail: mt('unsavedDetail'),
+    });
+    if (response === 2) return; // cancel — keep the window open
+    if (response === 1) {
+      win.__forceClose = true;
+      win.destroy();
+    } else {
+      win.webContents.send('save-then-close'); // renderer saves, then force-closes
+    }
   });
 
   win.on('closed', () => {
@@ -487,6 +511,16 @@ ipcMain.handle('settings:set', (_e, patch) => {
     }
   }
   return s;
+});
+
+ipcMain.on('doc:dirty', (event, dirty) => {
+  const win = senderWindow(event);
+  if (win) win.__dirty = !!dirty;
+});
+
+ipcMain.on('win:force-close', (event) => {
+  const win = senderWindow(event);
+  if (win) { win.__forceClose = true; win.close(); }
 });
 
 ipcMain.on('win:minimize', (event) => {
