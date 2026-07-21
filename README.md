@@ -21,6 +21,7 @@
 | Light | Dark |
 | --- | --- |
 | ![Light theme](docs/screenshot-light.png) | ![Dark theme](docs/screenshot-dark.png) |
+| ![Math and diagrams](docs/screenshot-light-2.png) | ![Code and tables](docs/screenshot-dark-2.png) |
 
 ## Download
 
@@ -38,20 +39,13 @@ Grab the latest installer from the [**Releases**](https://github.com/yssyss2323/
 
 ## Features
 
-- Clean rendering with light / dark themes
-- One window per file — open several documents side by side (they group under one taskbar/dock icon); opening a file already shown just focuses its window
-- Source view with inline editing — save with `Ctrl+S`
-- Choose a reading font — bundled Pretendard (default), Nanum Myeongjo, Gowun Dodum, or **any font installed on your computer** (searchable) — and adjust the font size and content width
-- Local images (including relative paths and non-ASCII filenames) render inline
-- Outline sidebar with scroll-position highlighting
-- Syntax-highlighted code blocks with a copy button
-- Tables, task lists, and footnotes
-- Math with KaTeX (`$...$`, `$$...$$`)
-- Mermaid diagrams (```` ```mermaid ````)
-- GitHub-style callouts (`> [!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`)
-- Auto-reload on file change, preserving scroll position
-- Find in document, PDF export, recent files
-- Korean / English interface
+- **Clean, distraction-free reading** in light or dark themes
+- **Source view & editing** — flip to the raw markdown, edit, and save (`Ctrl+E` / `Ctrl+S`)
+- **One window per file** — open documents side by side, grouped under a single taskbar/dock icon
+- **Full markdown** — KaTeX math, Mermaid diagrams, syntax-highlighted code, tables, task lists, and GitHub-style callouts
+- **Any reading font** — bundled fonts or anything installed on your computer, with adjustable size and width
+- **Find, outline sidebar, PDF export**, and live auto-reload when the file changes
+- **Korean / English** interface
 
 ## Keyboard Shortcuts
 
