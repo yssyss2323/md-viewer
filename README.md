@@ -4,6 +4,12 @@
 
 <h1 align="center">Mymd</h1>
 
+<p align="center">
+  <a href="https://github.com/yssyss2323/md-viewer/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/yssyss2323/md-viewer?label=release&color=3b7cd4"></a>
+  <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS-lightgrey">
+  <img alt="License" src="https://img.shields.io/badge/license-MIT-green">
+</p>
+
 <div align="center">
   <strong>A clean, distraction-free markdown viewer.</strong><br>
   Focused on whitespace and typography.<br>
@@ -18,26 +24,17 @@
 
 ## Download
 
-Grab the latest installer from the [**Releases**](https://github.com/yssyss2323/md-viewer/releases/latest) page:
+Grab the latest installer from the [**Releases**](https://github.com/yssyss2323/md-viewer/releases/latest) page — no setup or dependencies needed:
 
-- **Windows** — `Mymd Setup <version>.exe`
-- **macOS (Apple Silicon, M1+)** — `Mymd-<version>-arm64.dmg`
-- **macOS (Intel)** — `Mymd-<version>.dmg`
+- **Windows** — download `Mymd Setup <version>.exe` and run it.
+- **macOS (Apple Silicon, M1+)** — download `Mymd-<version>-arm64.dmg`, open it, and drag **Mymd** into Applications.
+- **macOS (Intel)** — same, using `Mymd-<version>.dmg`.
 
 > **macOS note:** the app is not signed with an Apple Developer certificate, so
 > on first launch macOS shows *"Mymd can't be opened because Apple cannot
 > check it for malicious software."* Right-click the app in Applications →
 > **Open** → **Open**, and macOS will remember the choice. (Or run
 > `xattr -dr com.apple.quarantine "/Applications/Mymd.app"`.)
-
-## Getting Started
-
-```
-npm install   # first time only
-npm start     # or: npm start -- path\to\file.md
-```
-
-You can also drag and drop a markdown file onto the window.
 
 ## Features
 
@@ -54,21 +51,34 @@ You can also drag and drop a markdown file onto the window.
 - GitHub-style callouts (`> [!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`)
 - Auto-reload on file change, preserving scroll position
 - Find in document, PDF export, recent files
+- Korean / English interface
 
 ## Keyboard Shortcuts
 
 | Action | Keys |
 | --- | --- |
 | Open file | `Ctrl+O` |
+| Save | `Ctrl+S` |
 | Find | `Ctrl+F` (close with `Esc`) |
 | Toggle outline | `Ctrl+B` |
 | Toggle source view / edit | `Ctrl+E` |
-| Save | `Ctrl+S` |
 | Toggle theme | `Ctrl+Shift+L` |
 | Export to PDF | `Ctrl+P` |
 | Zoom in / out / reset | `Ctrl+=` / `Ctrl+-` / `Ctrl+0` (or `Ctrl` + wheel) |
 
-## Building the Installer
+## Development
+
+<details>
+<summary>Build from source, package installers, and customize the icon (for contributors — not needed to just use the app).</summary>
+
+### Run from source
+
+```
+npm install   # first time only
+npm start     # or: npm start -- path\to\file.md
+```
+
+### Build installers
 
 ```
 npm run dist       # Windows installer (.exe)  — run on Windows
@@ -88,7 +98,7 @@ git push --follow-tags   # triggers the workflow
 
 macOS can only be built on a macOS machine, so this workflow is how the `.dmg` is produced — no Mac required locally.
 
-## App icon
+### App icon
 
 `build/icon.png` (app icon) and `build/icon.ico` (multi-resolution, used for the Windows `.md` file-type icon) are generated from `logo.png` by `build/make-icon.ps1` — it trims to the artwork, centers it, makes the corners transparent, and emits a 1024px PNG plus a 16–256px `.ico`. Regenerate with:
 
@@ -96,15 +106,13 @@ macOS can only be built on a macOS machine, so this workflow is how the `.dmg` i
 powershell -ExecutionPolicy Bypass -File build\make-icon.ps1
 ```
 
-> A `.ico` (not a `.png`) is required for the file-type icon so Windows Explorer
-> renders it crisply at every size. After updating it, Windows may keep showing
-> the old icon from its cache until the icon cache is rebuilt (or you restart).
+### Project structure
 
-## Project Structure
-
-- `main.js` — Electron main process (window, file open/watch, settings, PDF)
+- `main.js` — Electron main process (windows, file open/watch, settings, PDF)
 - `preload.js` — markdown rendering pipeline + IPC bridge
 - `renderer/` — UI (HTML/CSS/JS)
+
+</details>
 
 ## License
 
