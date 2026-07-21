@@ -20,7 +20,7 @@
 
 | Light | Dark |
 | --- | --- |
-| ![Light theme](docs/screenshot-light.png?v=2) | ![Dark theme](docs/screenshot-dark.png?v=2) |
+| ![Light theme](docs/screenshot-light.png?v=3) | ![Dark theme](docs/screenshot-dark.png?v=3) |
 
 ## Download
 

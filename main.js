@@ -418,6 +418,12 @@ function maybeRunScreenshot(win) {
         win.setContentSize(1160, Math.min(4000, 44 + Math.max(300, h)));
         await new Promise((r) => setTimeout(r, 500));
       }
+      const caphArg = process.argv.find((a) => a.startsWith('--caph='));
+      if (caphArg) {
+        // Fixed content height — lets two captures come out identically sized.
+        win.setContentSize(1160, parseInt(caphArg.split('=')[1], 10));
+        await new Promise((r) => setTimeout(r, 500));
+      }
       if (execArg) {
         const js = Buffer.from(execArg.split('=')[1], 'base64').toString('utf-8');
         await win.webContents.executeJavaScript(`(async () => { ${js} })()`);
