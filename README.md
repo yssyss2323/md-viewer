@@ -30,11 +30,16 @@ Grab the latest installer from the [**Releases**](https://github.com/yssyss2323/
 - **macOS (Apple Silicon, M1+)** — download `Mymd-<version>-arm64.dmg`, open it, and drag **Mymd** into Applications.
 - **macOS (Intel)** — same, using `Mymd-<version>.dmg`.
 
-> **macOS note:** the app is not signed with an Apple Developer certificate, so
-> on first launch macOS shows *"Mymd can't be opened because Apple cannot
-> check it for malicious software."* Right-click the app in Applications →
-> **Open** → **Open**, and macOS will remember the choice. (Or run
-> `xattr -dr com.apple.quarantine "/Applications/Mymd.app"`.)
+> **macOS note:** the app is ad-hoc signed, not notarized with an Apple
+> Developer certificate, so macOS quarantines it on download. After dragging
+> **Mymd** into Applications, remove the quarantine flag once from Terminal:
+>
+> ```
+> xattr -cr "/Applications/Mymd.app"
+> ```
+>
+> Then open it normally. (Without this, macOS — especially on Apple Silicon —
+> may refuse to launch it with *"Mymd is damaged and can't be opened."*)
 
 ## Features
 

@@ -36,7 +36,10 @@ jobs:
       - name: Build installer
         run: npx electron-builder --${{ matrix.platform }} --publish never
         env:
-          # No Apple Developer certificate — build unsigned instead of failing.
+          # No Apple Developer certificate. electron-builder skips its own
+          # signing (mac.identity: null); build/after-pack.js then ad-hoc signs
+          # the app so it launches on Apple Silicon. This flag just stops
+          # electron-builder from hunting the keychain for a real identity.
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
 
       - name: Upload artifacts

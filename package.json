@@ -31,6 +31,7 @@
     "asarUnpack": [
       "**/node_modules/font-list/**"
     ],
+    "afterPack": "build/after-pack.js",
     "win": {
       "target": [
         "nsis"
@@ -73,6 +74,8 @@
       "icon": "build/icon.png",
       "category": "public.app-category.productivity",
       "identity": null,
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
       "fileAssociations": [
         {
           "ext": "md",
