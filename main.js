@@ -407,8 +407,17 @@ function maybeRunScreenshot(win) {
   const scrollArg = process.argv.find((a) => a.startsWith('--scroll='));
   const themeArg = process.argv.find((a) => a.startsWith('--theme='));
   const sidebarArg = process.argv.includes('--sidebar');
+  const fitArg = process.argv.includes('--capfit');
   setTimeout(async () => {
     try {
+      if (fitArg) {
+        // Grow the window to fit the whole document so one capture shows it all.
+        const h = await win.webContents.executeJavaScript(
+          `Math.ceil(document.querySelector('#content').getBoundingClientRect().height) - 60`
+        );
+        win.setContentSize(1160, Math.min(4000, 44 + Math.max(300, h)));
+        await new Promise((r) => setTimeout(r, 500));
+      }
       if (execArg) {
         const js = Buffer.from(execArg.split('=')[1], 'base64').toString('utf-8');
         await win.webContents.executeJavaScript(`(async () => { ${js} })()`);

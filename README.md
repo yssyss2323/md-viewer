@@ -21,7 +21,6 @@
 | Light | Dark |
 | --- | --- |
 | ![Light theme](docs/screenshot-light.png) | ![Dark theme](docs/screenshot-dark.png) |
-| ![Math and diagrams](docs/screenshot-light-2.png) | ![Code and tables](docs/screenshot-dark-2.png) |
 
 ## Download
 
