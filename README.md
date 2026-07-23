@@ -46,7 +46,7 @@ Grab the latest installer from the [**Releases**](https://github.com/yssyss2323/
 - **Clean, distraction-free reading** in light or dark themes
 - **Source view & editing** — flip to the raw markdown, edit, and save (`Ctrl+E` / `Ctrl+S`)
 - **File browser sidebar** — browse the current folder's markdown files as a tree, search them by name, and jump to recent files
-- **Highlighter & checkboxes** — select text to highlight it in several colors (or right-click / `Ctrl+H`) and tick task-list boxes right from the reading view; edits save into the file and `Ctrl+Z` undoes them
+- **Format from the reading view** — select text and apply **bold**, *italic*, ~~strikethrough~~, `code`, or a color highlight (Notion-style shortcuts), and tick task-list boxes; every edit saves into the file and `Ctrl+Z` undoes it
 - **Full markdown** — KaTeX math, Mermaid diagrams, syntax-highlighted code, tables, task lists, and GitHub-style callouts
 - **Any reading font** — bundled fonts or anything installed on your computer, with adjustable size and width
 - **Export to PDF or self-contained HTML**, plus outline sidebar, find, image zoom, and live auto-reload
@@ -59,10 +59,11 @@ Grab the latest installer from the [**Releases**](https://github.com/yssyss2323/
 | Open file | `Ctrl+O` |
 | Save | `Ctrl+S` |
 | Find | `Ctrl+F` (close with `Esc`) |
-| Toggle outline | `Ctrl+B` |
-| Toggle source view / edit | `Ctrl+E` |
-| Highlight selection | `Ctrl+H` (or select text → palette / right-click) |
-| Undo / redo (highlight, checkbox) | `Ctrl+Z` / `Ctrl+Y` |
+| Bold / Italic / Strikethrough | `Ctrl+B` / `Ctrl+I` / `Ctrl+Shift+S` |
+| Inline code / Highlight | `Ctrl+E` / `Ctrl+Shift+H` (highlight: also select → palette / right-click) |
+| Toggle source view / edit | `Ctrl+Shift+E` |
+| Toggle outline | `Ctrl+\` |
+| Undo / redo | `Ctrl+Z` / `Ctrl+Y` |
 | Toggle theme | `Ctrl+Shift+L` |
 | Export to PDF | `Ctrl+P` |
 | Zoom in / out / reset | `Ctrl+=` / `Ctrl+-` / `Ctrl+0` (or `Ctrl` + wheel) |

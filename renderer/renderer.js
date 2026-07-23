@@ -67,11 +67,11 @@
 
   const I18N = {
     ko: {
-      ttSidebar: '목차 (Ctrl+B)', ttOpen: '파일 열기 (Ctrl+O)', ttSource: '원문 보기/편집 (Ctrl+E)',
+      ttSidebar: '목차 (Ctrl+\\)', ttOpen: '파일 열기 (Ctrl+O)', ttSource: '원문 보기/편집 (Ctrl+Shift+E)',
       ttSave: '저장 (Ctrl+S)', ttFind: '찾기 (Ctrl+F)', ttPdf: 'PDF로 내보내기 (Ctrl+P)', ttFont: '글꼴', ttSettings: '설정',
       ttTheme: '테마 전환 (Ctrl+Shift+L)', ttMinimize: '최소화', ttMaximize: '최대화', ttRestore: '이전 크기로',
       ttClose: '닫기', secBundledFonts: '기본 글꼴', fontSystem: '시스템 기본', secSystemFonts: '내 컴퓨터 글꼴',
-      phFontSearch: '설치된 글꼴 검색…', secFontSize: '글자 크기', ttSmaller: '작게', ttLarger: '크게',
+      phFontSearch: '설치된 글꼴 검색…', currentFont: '현재 글꼴', secFontSize: '글자 크기', ttSmaller: '작게', ttLarger: '크게',
       secContentWidth: '본문 너비', ttNarrower: '좁게', ttWider: '넓게', secLanguage: '언어 / Language',
       phFind: '찾기…', ttFindPrev: '이전 (Shift+Enter)', ttFindNext: '다음 (Enter)', ttFindClose: '닫기 (Esc)',
       outline: '목차', welcomeSub: '마크다운 파일을 열거나 창으로 끌어다 놓으세요', openFile: '파일 열기',
@@ -81,7 +81,8 @@
       fbNoFolder: '파일을 열면 이 폴더의 문서가 여기 표시됩니다',
       phFbSearch: '파일 검색…', fbNoMatch: '일치하는 파일이 없습니다',
       toastCopied: '복사됨 (서식 유지)', toastHtmlSaved: '저장됨: {0}', toastHtmlFail: '내보내기 실패: {0}',
-      toastNoSelection: '먼저 형광펜 칠할 텍스트를 선택하세요', toastHlFail: '선택한 부분을 원문에서 찾지 못했습니다',
+      toastNoSelection: '먼저 텍스트를 선택하세요', toastHlFail: '선택한 부분을 원문에서 찾지 못했습니다',
+      toastHlLink: '링크에는 형광펜을 칠할 수 없어요',
       outlineEmpty: '제목이 없습니다', stats: '{0} 단어 · {1} 글자 · 약 {2}분', findNone: '없음',
       dotModified: '저장되지 않은 변경 (Ctrl+S)', dotChanged: '파일이 변경되어 새로고침됨',
       toastOpenFirst: '먼저 파일을 열어주세요', toastCopyFail: '복사에 실패했습니다', toastSaved: '저장됨',
@@ -94,11 +95,11 @@
       copy: '복사', coNOTE: '노트', coTIP: '팁', coIMPORTANT: '중요', coWARNING: '주의', coCAUTION: '경고',
     },
     en: {
-      ttSidebar: 'Outline (Ctrl+B)', ttOpen: 'Open file (Ctrl+O)', ttSource: 'Source view / edit (Ctrl+E)',
+      ttSidebar: 'Outline (Ctrl+\\)', ttOpen: 'Open file (Ctrl+O)', ttSource: 'Source view / edit (Ctrl+Shift+E)',
       ttSave: 'Save (Ctrl+S)', ttFind: 'Find (Ctrl+F)', ttPdf: 'Export to PDF (Ctrl+P)', ttFont: 'Font', ttSettings: 'Settings',
       ttTheme: 'Toggle theme (Ctrl+Shift+L)', ttMinimize: 'Minimize', ttMaximize: 'Maximize', ttRestore: 'Restore',
       ttClose: 'Close', secBundledFonts: 'Bundled fonts', fontSystem: 'System default', secSystemFonts: 'Installed fonts',
-      phFontSearch: 'Search installed fonts…', secFontSize: 'Font size', ttSmaller: 'Smaller', ttLarger: 'Larger',
+      phFontSearch: 'Search installed fonts…', currentFont: 'Current font', secFontSize: 'Font size', ttSmaller: 'Smaller', ttLarger: 'Larger',
       secContentWidth: 'Content width', ttNarrower: 'Narrower', ttWider: 'Wider', secLanguage: '언어 / Language',
       phFind: 'Find…', ttFindPrev: 'Previous (Shift+Enter)', ttFindNext: 'Next (Enter)', ttFindClose: 'Close (Esc)',
       outline: 'Outline', welcomeSub: 'Open a markdown file, or drag one onto the window', openFile: 'Open File',
@@ -108,7 +109,8 @@
       fbNoFolder: 'Open a file to browse its folder here',
       phFbSearch: 'Search files…', fbNoMatch: 'No matching files',
       toastCopied: 'Copied (with formatting)', toastHtmlSaved: 'Saved: {0}', toastHtmlFail: 'Export failed: {0}',
-      toastNoSelection: 'Select the text you want to highlight first', toastHlFail: "Couldn't find the selection in the source",
+      toastNoSelection: 'Select some text first', toastHlFail: "Couldn't find the selection in the source",
+      toastHlLink: "Links can't be highlighted",
       outlineEmpty: 'No headings', stats: '{0} words · {1} chars · ~{2} min', findNone: 'No results',
       dotModified: 'Unsaved changes (Ctrl+S)', dotChanged: 'File changed on disk — reloaded',
       toastOpenFirst: 'Open a file first', toastCopyFail: 'Copy failed', toastSaved: 'Saved',
@@ -565,103 +567,163 @@
     return { el: e, bs, be };
   }
 
-  // Apply / recolor / remove a highlight over the current selection, editing the
-  // source so it survives reload. `color` is yellow | green | pink | blue |
-  // remove. Yellow uses portable ==marks==; other colors use <mark class="mk-…">.
-  // Picking the same color again toggles it off.
-  //
-  // The selection is scoped to the block it lands in (via data-line) and mapped
-  // to an exact source range by char-aligning that block's rendered text to its
-  // source. This works even when the selection overlaps inline formatting, and
-  // uses the real selection position (not text search) so repeats never confuse
-  // it.
-  async function applyHighlight(color) {
-    if (state.sourceMode || !state.path) { toast(t('toastNoSelection')); return; }
+  // Break the current selection into per-text-node segments (so it spans blocks
+  // and inline formatting) and map each to an exact source range, tagging its
+  // inline context. Each segment is a plain-text run, so wrapping it is always
+  // valid markup.
+  function selectionSegments() {
     const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0 || sel.isCollapsed) { toast(t('toastNoSelection')); return; }
+    if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return null;
     const range = sel.getRangeAt(0);
-    if (!el.content.contains(range.commonAncestorContainer)) { toast(t('toastNoSelection')); return; }
-
-    const block = blockSourceRange(range.startContainer);
-    if (!block) { toast(t('toastHlFail')); return; }
+    if (!el.content.contains(range.commonAncestorContainer)) return null;
     const raw = state.raw;
-    const rendered = block.el.textContent;
-    const source = raw.slice(block.bs, block.be);
-
-    // Selection bounds as offsets into the block's rendered text.
-    let a = textOffsetWithin(block.el, range.startContainer, range.startOffset);
-    let b = textOffsetWithin(block.el, range.endContainer, range.endOffset);
-    if (b < a) [a, b] = [b, a];
-    b = Math.min(b, rendered.length);
-    while (a < b && /\s/.test(rendered[a])) a++; // trim whitespace at the edges
-    while (b > a && /\s/.test(rendered[b - 1])) b--;
-    if (a >= b) { toast(t('toastNoSelection')); return; }
-
-    const map = alignRenderedToSource(rendered, source);
-    const s0 = map[a];
-    const s1 = map[b - 1];
-    if (s0 < 0 || s1 < 0) { toast(t('toastHlFail')); return; }
-    let srcStart = block.bs + s0;
-    let srcEnd = block.bs + s1 + 1;
-    if (srcEnd <= srcStart) { toast(t('toastHlFail')); return; }
-
-    // Keep the wrapped range from splitting inline formatting, which would
-    // produce broken markup (e.g. **==bold** → literal ==). Inline code is
-    // verbatim, so wrap outside its backticks; for emphasis/strike, expand the
-    // range just enough over adjacent delimiters to keep them balanced.
-    const balanced = (s) =>
-      (s.match(/\*\*/g) || []).length % 2 === 0 &&
-      (s.replace(/\*\*/g, '').match(/\*/g) || []).length % 2 === 0 &&
-      (s.match(/~~/g) || []).length % 2 === 0 &&
-      (s.match(/`/g) || []).length % 2 === 0;
-    let codeEl = range.startContainer.nodeType === 3 ? range.startContainer.parentElement : range.startContainer;
-    codeEl = codeEl && codeEl.closest ? codeEl.closest('code') : null;
-    if (codeEl && codeEl.contains(range.endContainer) && el.content.contains(codeEl)) {
-      while (srcStart > block.bs && raw[srcStart - 1] === '`') srcStart--;
-      while (srcEnd < block.be && raw[srcEnd] === '`') srcEnd++;
-    } else if (!balanced(raw.slice(srcStart, srcEnd))) {
-      const DELIM = /[*~`]/;
-      let ls = srcStart;
-      while (ls > block.bs && DELIM.test(raw[ls - 1])) ls--;
-      let re = srcEnd;
-      while (re < block.be && DELIM.test(raw[re])) re++;
-      for (const [a2, b2] of [[ls, srcEnd], [srcStart, re], [ls, re]]) {
-        if (balanced(raw.slice(a2, b2))) { srcStart = a2; srcEnd = b2; break; }
+    const rootNode = range.commonAncestorContainer;
+    const root = rootNode.nodeType === 1 ? rootNode : rootNode.parentElement;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    const alignCache = new Map();
+    const segs = [];
+    let n;
+    while ((n = walker.nextNode())) {
+      if (!n.nodeValue || !range.intersectsNode(n)) continue;
+      let s = 0;
+      let e = n.nodeValue.length;
+      if (n === range.startContainer) s = range.startOffset;
+      if (n === range.endContainer) e = range.endOffset;
+      if (s >= e) continue;
+      if (!n.nodeValue.slice(s, e).trim()) continue; // skip whitespace-only bits (between blocks/tags)
+      while (s < e && /\s/.test(n.nodeValue[s])) s++; // trim whitespace at segment edges
+      while (e > s && /\s/.test(n.nodeValue[e - 1])) e--;
+      const block = blockSourceRange(n);
+      if (!block) continue;
+      let map = alignCache.get(block.el);
+      if (!map) {
+        map = alignRenderedToSource(block.el.textContent, raw.slice(block.bs, block.be));
+        alignCache.set(block.el, map);
       }
+      const a = textOffsetWithin(block.el, n, s);
+      const b = textOffsetWithin(block.el, n, e);
+      if (b <= a) continue;
+      const s0 = map[a];
+      const s1 = map[b - 1];
+      if (s0 == null || s0 < 0 || s1 == null || s1 < 0) continue;
+      const p = n.parentElement;
+      segs.push({
+        srcStart: block.bs + s0,
+        srcEnd: block.bs + s1 + 1,
+        isLink: !!(p && p.closest('a')),
+        isCode: !!(p && p.closest('code')),
+      });
     }
-    const text = raw.slice(srcStart, srcEnd); // exact source (may include inline syntax / a soft wrap)
+    return { sel, segs };
+  }
 
-    // Detect an existing wrapper around this range: == == or <mark …>.
-    let wrapStart = -1;
-    let wrapEnd = -1;
-    let curColor = null;
-    if (raw.slice(srcStart - 2, srcStart) === '==' && raw.slice(srcEnd, srcEnd + 2) === '==') {
-      wrapStart = srcStart - 2;
-      wrapEnd = srcEnd + 2;
-      curColor = 'yellow';
-    } else {
-      const openTag = raw.slice(0, srcStart).match(/<mark\b([^>]*)>$/i);
-      if (openTag && /^<\/mark>/i.test(raw.slice(srcEnd))) {
-        wrapStart = srcStart - openTag[0].length;
-        wrapEnd = srcEnd + '</mark>'.length;
-        curColor = (openTag[1].match(/class\s*=\s*["']mk-(\w+)["']/i) || [])[1] || 'yellow';
-      }
+  function detectMarkWrapper(raw, s, e) {
+    if (raw.slice(s - 2, s) === '==' && raw.slice(e, e + 2) === '==') {
+      return { ws: s - 2, we: e + 2, openLen: 2, closeLen: 2, color: 'yellow' };
     }
-    const wrapped = wrapStart !== -1;
-    const wrap = (co) => (co === 'yellow' ? `==${text}==` : `<mark class="mk-${co}">${text}</mark>`);
+    const open = raw.slice(0, s).match(/<mark\b([^>]*)>$/i);
+    if (open && /^<\/mark>/i.test(raw.slice(e))) {
+      return { ws: s - open[0].length, we: e + 7, openLen: open[0].length, closeLen: 7, color: (open[1].match(/mk-(\w+)/i) || [])[1] || 'yellow' };
+    }
+    return null;
+  }
 
-    let newRaw;
-    if (color === 'remove' || (wrapped && curColor === color)) {
-      if (!wrapped) { sel.removeAllRanges(); hideHlBar(); return; }
-      newRaw = raw.slice(0, wrapStart) + text + raw.slice(wrapEnd);
-    } else if (wrapped) {
-      newRaw = raw.slice(0, wrapStart) + wrap(color) + raw.slice(wrapEnd);
-    } else {
-      newRaw = raw.slice(0, srcStart) + wrap(color) + raw.slice(srcEnd);
+  function detectPairWrapper(raw, s, e, open, close) {
+    if (raw.slice(s - open.length, s) === open && raw.slice(e, e + close.length) === close) {
+      return { ws: s - open.length, we: e + close.length, openLen: open.length, closeLen: close.length };
     }
-    sel.removeAllRanges();
+    return null;
+  }
+
+  // Apply non-overlapping {ws, we, rep} source edits. Overlapping edits are
+  // dropped (never corrupt the source), then the rest are applied high-to-low.
+  async function applyEdits(edits, sel) {
+    if (sel) sel.removeAllRanges();
     hideHlBar();
-    await applyRawEdit(newRaw);
+    const list = edits.filter((ed) => ed && ed.we >= ed.ws).sort((x, y) => x.ws - y.ws);
+    const safe = [];
+    let lastEnd = -1;
+    for (const ed of list) {
+      if (ed.ws < lastEnd) continue;
+      safe.push(ed);
+      lastEnd = ed.we;
+    }
+    if (!safe.length) return;
+    let out = state.raw;
+    for (let i = safe.length - 1; i >= 0; i--) {
+      out = out.slice(0, safe[i].ws) + safe[i].rep + out.slice(safe[i].we);
+    }
+    await applyRawEdit(out);
+  }
+
+  // Highlight the selection. color: yellow|green|pink|blue|remove.
+  // opts.toggle (the shortcut) removes highlighting if any of it is already marked.
+  async function applyHighlight(color, opts = {}) {
+    if (state.sourceMode || !state.path) { toast(t('toastNoSelection')); return; }
+    const info = selectionSegments();
+    if (!info || !info.segs.length) { toast(t('toastNoSelection')); return; }
+    const raw = state.raw;
+    let segs = info.segs.filter((sg) => !sg.isLink); // links are never highlighted
+    if (!segs.length) { info.sel.removeAllRanges(); hideHlBar(); toast(t('toastHlLink')); return; }
+    // Inline code is verbatim — wrap it from outside the backticks.
+    segs = segs.map((sg) => {
+      if (!sg.isCode) return sg;
+      let a = sg.srcStart;
+      let b = sg.srcEnd;
+      while (a > 0 && raw[a - 1] === '`') a--;
+      while (b < raw.length && raw[b] === '`') b++;
+      return { srcStart: a, srcEnd: b, isCode: true };
+    });
+    const wraps = segs.map((sg) => detectMarkWrapper(raw, sg.srcStart, sg.srcEnd));
+    const removing = color === 'remove' || (opts.toggle && wraps.some(Boolean));
+    const wrapM = (inner) => (color === 'yellow' ? `==${inner}==` : `<mark class="mk-${color}">${inner}</mark>`);
+    const edits = [];
+    segs.forEach((sg, i) => {
+      const d = wraps[i];
+      if (removing) {
+        if (d) edits.push({ ws: d.ws, we: d.we, rep: raw.slice(d.ws + d.openLen, d.we - d.closeLen) });
+      } else if (d) {
+        edits.push({ ws: d.ws, we: d.we, rep: wrapM(raw.slice(d.ws + d.openLen, d.we - d.closeLen)) });
+      } else {
+        edits.push({ ws: sg.srcStart, we: sg.srcEnd, rep: wrapM(raw.slice(sg.srcStart, sg.srcEnd)) });
+      }
+    });
+    await applyEdits(edits, info.sel);
+  }
+
+  // Toggle inline formatting over the selection. kind: bold|italic|strike|code.
+  const EMPH = { bold: ['**', '**'], italic: ['*', '*'], strike: ['~~', '~~'], code: ['`', '`'] };
+  async function applyEmphasis(kind) {
+    if (!state.path) return;
+    const [open, close] = EMPH[kind];
+    if (state.sourceMode) { wrapEditorSelection(open, close); return; }
+    const info = selectionSegments();
+    if (!info || !info.segs.length) { toast(t('toastNoSelection')); return; }
+    const raw = state.raw;
+    // Don't format inside links or code spans.
+    const segs = info.segs.filter((sg) => !sg.isLink && !sg.isCode);
+    if (!segs.length) { info.sel.removeAllRanges(); toast(t('toastNoSelection')); return; }
+    const wraps = segs.map((sg) => detectPairWrapper(raw, sg.srcStart, sg.srcEnd, open, close));
+    const allWrapped = wraps.every(Boolean);
+    const edits = [];
+    segs.forEach((sg, i) => {
+      const d = wraps[i];
+      if (allWrapped) {
+        if (d) edits.push({ ws: d.ws, we: d.we, rep: raw.slice(d.ws + d.openLen, d.we - d.closeLen) });
+      } else if (!d) {
+        edits.push({ ws: sg.srcStart, we: sg.srcEnd, rep: open + raw.slice(sg.srcStart, sg.srcEnd) + close });
+      }
+    });
+    await applyEdits(edits, info.sel);
+  }
+
+  // Wrap the source-editor's textarea selection (formatting shortcuts in source mode).
+  function wrapEditorSelection(open, close) {
+    const ta = el.editor;
+    if (ta.selectionStart === ta.selectionEnd) return;
+    const inner = ta.value.slice(ta.selectionStart, ta.selectionEnd);
+    ta.setRangeText(open + inner + close, ta.selectionStart, ta.selectionEnd, 'select');
+    ta.dispatchEvent(new Event('input'));
   }
 
   /* ---------- Floating highlight palette ---------- */
@@ -1116,6 +1178,30 @@
     return FONTS[key] || FONTS.pretendard;
   }
 
+  const BUNDLED_NAMES = {
+    pretendard: 'Pretendard',
+    'nanum-myeongjo': '나눔명조',
+    'gowun-dodum': '고운돋움',
+  };
+  function fontDisplayName(key) {
+    if (key === 'system') return t('fontSystem');
+    if (BUNDLED_NAMES[key]) return BUNDLED_NAMES[key];
+    if (key && key.startsWith('sys:')) {
+      const fam = key.slice(4);
+      let btn = null;
+      try { btn = document.querySelector('.fm-sysitem[data-family="' + CSS.escape(fam) + '"]'); } catch {}
+      return (btn && btn.dataset.label) || fam;
+    }
+    return 'Pretendard';
+  }
+
+  function scrollActiveFontIntoView() {
+    requestAnimationFrame(() => {
+      const active = document.querySelector('#fm-syslist .fm-sysitem.active');
+      if (active) active.scrollIntoView({ block: 'center' });
+    });
+  }
+
   function applyFont(key, { persist = true } = {}) {
     if (!key || (!FONTS[key] && !key.startsWith('sys:'))) key = 'pretendard';
     state.font = key;
@@ -1126,6 +1212,8 @@
     document.querySelectorAll('.fm-sysitem').forEach((it) => {
       it.classList.toggle('active', 'sys:' + it.dataset.family === key);
     });
+    const cn = $('#fm-current-name');
+    if (cn) cn.textContent = fontDisplayName(key);
     if (persist) window.api.setSettings({ font: key });
   }
 
@@ -1165,6 +1253,11 @@
         btn.addEventListener('click', () => applyFont('sys:' + fam));
         list.appendChild(btn);
       }
+      // Now that labels are available, upgrade the current-font display and
+      // reveal the active font in the list.
+      const cn = $('#fm-current-name');
+      if (cn) cn.textContent = fontDisplayName(state.font);
+      if (fontMenuOpen) scrollActiveFontIntoView();
     } catch {
       list.innerHTML = `<div class="fm-empty">${t('fontListFail')}</div>`;
     }
@@ -1211,7 +1304,7 @@
   $('#btn-font').addEventListener('click', (e) => {
     e.stopPropagation();
     toggleFontMenu();
-    if (fontMenuOpen) loadSystemFonts();
+    if (fontMenuOpen) { loadSystemFonts(); scrollActiveFontIntoView(); }
   });
   $('#fm-search').addEventListener('input', (e) => filterSystemFonts(e.target.value));
   $('#fm-search').addEventListener('click', (e) => e.stopPropagation());
@@ -1487,17 +1580,25 @@
         e.preventDefault();
         openFind();
         break;
-      case 'b':
+      case 'b': // bold (outline moved to Ctrl+\)
         e.preventDefault();
-        setSidebar(!state.sidebarOpen);
+        applyEmphasis('bold');
         break;
-      case 'e':
+      case 'i':
         e.preventDefault();
-        setSourceMode(!state.sourceMode);
+        applyEmphasis('italic');
+        break;
+      case 'e': // inline code; Ctrl+Shift+E = source view (moved off Ctrl+E)
+        e.preventDefault();
+        if (e.shiftKey) setSourceMode(!state.sourceMode);
+        else applyEmphasis('code');
         break;
       case 'h':
+        if (e.shiftKey) { e.preventDefault(); applyHighlight('yellow', { toggle: true }); }
+        break;
+      case '\\':
         e.preventDefault();
-        applyHighlight('yellow');
+        setSidebar(!state.sidebarOpen);
         break;
       case 'z':
         if (state.sourceMode) break; // let the textarea's native undo run
@@ -1512,7 +1613,8 @@
         break;
       case 's':
         e.preventDefault();
-        saveFile();
+        if (e.shiftKey) applyEmphasis('strike');
+        else saveFile();
         break;
       case 'p':
         e.preventDefault();

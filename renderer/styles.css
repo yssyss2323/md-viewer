@@ -299,6 +299,28 @@ body.platform-darwin #tb-logo { margin-left: 0; }
   padding: 10px 8px 5px;
   border-top: 1px solid var(--border);
 }
+#fm-current {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 8px 8px;
+}
+.fm-current-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+  flex-shrink: 0;
+}
+#fm-current-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 #font-menu > .fm-section:first-child {
   margin-top: 0;
   padding-top: 4px;
