@@ -676,16 +676,26 @@
     });
     const wraps = segs.map((sg) => detectMarkWrapper(raw, sg.srcStart, sg.srcEnd));
     const removing = color === 'remove' || (opts.toggle && wraps.some(Boolean));
-    const wrapM = (inner) => (color === 'yellow' ? `==${inner}==` : `<mark class="mk-${color}">${inner}</mark>`);
+    // Yellow uses portable ==marks==, but == can't touch or contain '=' (it would
+    // merge into a ===== run that no longer parses). In that case fall back to an
+    // HTML <mark> (also default-yellow). Named colors always use <mark class>.
+    const wrapM = (inner, before, after) => {
+      if (color !== 'yellow') return `<mark class="mk-${color}">${inner}</mark>`;
+      const unsafe =
+        inner.startsWith('=') || inner.endsWith('=') || inner.includes('==') || before === '=' || after === '=';
+      return unsafe ? `<mark>${inner}</mark>` : `==${inner}==`;
+    };
     const edits = [];
     segs.forEach((sg, i) => {
       const d = wraps[i];
       if (removing) {
         if (d) edits.push({ ws: d.ws, we: d.we, rep: raw.slice(d.ws + d.openLen, d.we - d.closeLen) });
       } else if (d) {
-        edits.push({ ws: d.ws, we: d.we, rep: wrapM(raw.slice(d.ws + d.openLen, d.we - d.closeLen)) });
+        const inner = raw.slice(d.ws + d.openLen, d.we - d.closeLen);
+        edits.push({ ws: d.ws, we: d.we, rep: wrapM(inner, raw[d.ws - 1], raw[d.we]) });
       } else {
-        edits.push({ ws: sg.srcStart, we: sg.srcEnd, rep: wrapM(raw.slice(sg.srcStart, sg.srcEnd)) });
+        const inner = raw.slice(sg.srcStart, sg.srcEnd);
+        edits.push({ ws: sg.srcStart, we: sg.srcEnd, rep: wrapM(inner, raw[sg.srcStart - 1], raw[sg.srcEnd]) });
       }
     });
     await applyEdits(edits, info.sel);
