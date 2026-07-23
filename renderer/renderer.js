@@ -502,33 +502,69 @@
 
   /* ---------- Highlighter (== ==) ---------- */
 
-  function contentTextOffset(node, offset) {
-    const walker = document.createTreeWalker(el.content, NodeFilter.SHOW_TEXT);
+  // Char offset of (node, offset) within root.textContent.
+  function textOffsetWithin(root, node, offset) {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     let acc = 0;
     let n;
     while ((n = walker.nextNode())) {
       if (n === node) return acc + offset;
       acc += n.nodeValue.length;
     }
-    return acc + offset;
+    return acc;
   }
 
-  function nthIndexOf(hay, needle, n) {
-    let idx = -1;
-    let from = 0;
-    let count = 0;
-    while ((idx = hay.indexOf(needle, from)) !== -1) {
-      if (count === n) return idx;
-      count++;
-      from = idx + needle.length;
+  // Byte-independent start offset of every source line, so a block's data-line
+  // (a line number) maps to a char offset in our own copy of the source.
+  function lineStartOffsets(text) {
+    const offs = [0];
+    for (let i = 0; i < text.length; i++) if (text[i] === '\n') offs.push(i + 1);
+    return offs;
+  }
+
+  // Whitespace-normalized copy of s (each run of whitespace → one space) with
+  // map[k] = index in s of the k-th normalized char. Lets us match the rendered
+  // selection (which differs from source in line-endings / soft wraps / spacing)
+  // against the source and still recover exact source offsets.
+  function normalizeWs(s) {
+    let norm = '';
+    const map = [];
+    let inWs = false;
+    for (let i = 0; i < s.length; i++) {
+      if (/\s/.test(s[i])) {
+        if (!inWs) { norm += ' '; map.push(i); inWs = true; }
+      } else {
+        norm += s[i];
+        map.push(i);
+        inWs = false;
+      }
     }
-    return -1;
+    return { norm, map };
+  }
+
+  // Source char range [bs, be) of the nearest block (data-line) containing node.
+  function blockSourceRange(node) {
+    let e = node.nodeType === 3 ? node.parentElement : node;
+    e = e && e.closest ? e.closest('[data-line]') : null;
+    if (!e || !el.content.contains(e)) return null;
+    const startLine = parseInt(e.getAttribute('data-line'), 10);
+    const endLine = parseInt(e.getAttribute('data-line-end'), 10);
+    if (Number.isNaN(startLine)) return null;
+    const offs = lineStartOffsets(state.raw);
+    const bs = startLine < offs.length ? offs[startLine] : 0;
+    const be = !Number.isNaN(endLine) && endLine < offs.length ? offs[endLine] : state.raw.length;
+    return { el: e, bs, be };
   }
 
   // Apply / recolor / remove a highlight over the current selection, editing the
   // source so it survives reload. `color` is yellow | green | pink | blue |
   // remove. Yellow uses portable ==marks==; other colors use <mark class="mk-…">.
   // Picking the same color again toggles it off.
+  //
+  // The selection is mapped to the source by scoping to the block it lands in
+  // (via data-line) and matching within that block only — so a short string
+  // never highlights a different occurrence elsewhere — with whitespace
+  // normalized so \r\n / soft wraps / spacing don't cause a "not found".
   async function applyHighlight(color) {
     if (state.sourceMode || !state.path) { toast(t('toastNoSelection')); return; }
     const sel = window.getSelection();
@@ -536,55 +572,66 @@
     const range = sel.getRangeAt(0);
     if (!el.content.contains(range.commonAncestorContainer)) { toast(t('toastNoSelection')); return; }
 
-    const rawSel = sel.toString();
-    if (!rawSel.trim()) { toast(t('toastNoSelection')); return; }
-    const lead = rawSel.length - rawSel.trimStart().length;
-    const needle = rawSel.trim();
-    if (needle.includes('\n')) { toast(t('toastHlFail')); return; } // single block only
+    const needle = sel.toString().replace(/\s+/g, ' ').trim();
+    if (!needle) { toast(t('toastNoSelection')); return; }
 
-    const fullText = el.content.textContent;
-    const startOff = contentTextOffset(range.startContainer, range.startOffset) + lead;
-    let occ = 0;
-    let hit = -1;
-    let from = 0;
-    while ((hit = fullText.indexOf(needle, from)) !== -1 && hit < startOff) {
-      occ++;
-      from = hit + needle.length;
-    }
-
+    const block = blockSourceRange(range.startContainer);
+    if (!block) { toast(t('toastHlFail')); return; }
     const raw = state.raw;
-    let rawIdx = nthIndexOf(raw, needle, occ);
-    if (rawIdx === -1) rawIdx = raw.indexOf(needle);
-    if (rawIdx === -1) { toast(t('toastHlFail')); return; }
-    const rawEnd = rawIdx + needle.length;
+    const blockSrc = raw.slice(block.bs, block.be);
 
-    // Detect an existing wrapper around this occurrence: == == or <mark …>.
+    // Which occurrence within this block? Count matches in the block's rendered
+    // text before the selection start.
+    const selStart = textOffsetWithin(block.el, range.startContainer, range.startOffset);
+    const before = block.el.textContent.slice(0, selStart).replace(/\s+/g, ' ');
+    let occ = 0;
+    let p = 0;
+    let bhit;
+    while ((bhit = before.indexOf(needle, p)) !== -1) { occ++; p = bhit + needle.length; }
+
+    const { norm, map } = normalizeWs(blockSrc);
+    let mIdx = -1;
+    let f = 0;
+    let c = 0;
+    while ((mIdx = norm.indexOf(needle, f)) !== -1) {
+      if (c === occ) break;
+      c++;
+      f = mIdx + needle.length;
+    }
+    if (mIdx === -1) mIdx = norm.indexOf(needle); // fall back to first match
+    if (mIdx === -1) { toast(t('toastHlFail')); return; }
+
+    const srcStart = block.bs + map[mIdx];
+    const srcEnd = block.bs + map[mIdx + needle.length - 1] + 1;
+    const text = raw.slice(srcStart, srcEnd); // exact source text (may hold a soft wrap)
+
+    // Detect an existing wrapper around this range: == == or <mark …>.
     let wrapStart = -1;
     let wrapEnd = -1;
     let curColor = null;
-    if (raw.slice(rawIdx - 2, rawIdx) === '==' && raw.slice(rawEnd, rawEnd + 2) === '==') {
-      wrapStart = rawIdx - 2;
-      wrapEnd = rawEnd + 2;
+    if (raw.slice(srcStart - 2, srcStart) === '==' && raw.slice(srcEnd, srcEnd + 2) === '==') {
+      wrapStart = srcStart - 2;
+      wrapEnd = srcEnd + 2;
       curColor = 'yellow';
     } else {
-      const openTag = raw.slice(0, rawIdx).match(/<mark\b([^>]*)>$/i);
-      if (openTag && /^<\/mark>/i.test(raw.slice(rawEnd))) {
-        wrapStart = rawIdx - openTag[0].length;
-        wrapEnd = rawEnd + '</mark>'.length;
+      const openTag = raw.slice(0, srcStart).match(/<mark\b([^>]*)>$/i);
+      if (openTag && /^<\/mark>/i.test(raw.slice(srcEnd))) {
+        wrapStart = srcStart - openTag[0].length;
+        wrapEnd = srcEnd + '</mark>'.length;
         curColor = (openTag[1].match(/class\s*=\s*["']mk-(\w+)["']/i) || [])[1] || 'yellow';
       }
     }
     const wrapped = wrapStart !== -1;
-    const wrap = (c) => (c === 'yellow' ? `==${needle}==` : `<mark class="mk-${c}">${needle}</mark>`);
+    const wrap = (co) => (co === 'yellow' ? `==${text}==` : `<mark class="mk-${co}">${text}</mark>`);
 
     let newRaw;
     if (color === 'remove' || (wrapped && curColor === color)) {
       if (!wrapped) { sel.removeAllRanges(); hideHlBar(); return; }
-      newRaw = raw.slice(0, wrapStart) + needle + raw.slice(wrapEnd);
+      newRaw = raw.slice(0, wrapStart) + text + raw.slice(wrapEnd);
     } else if (wrapped) {
       newRaw = raw.slice(0, wrapStart) + wrap(color) + raw.slice(wrapEnd);
     } else {
-      newRaw = raw.slice(0, rawIdx) + wrap(color) + raw.slice(rawEnd);
+      newRaw = raw.slice(0, srcStart) + wrap(color) + raw.slice(srcEnd);
     }
     sel.removeAllRanges();
     hideHlBar();

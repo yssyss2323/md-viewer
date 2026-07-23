@@ -10,7 +10,10 @@ const mark = require('markdown-it-mark');
 const md = require('markdown-it')({
   html: true,
   linkify: true,
-  typographer: true,
+  // Smart-punctuation is off so the rendered text matches the source verbatim
+  // (…/–/curly quotes would otherwise differ), which the highlighter relies on
+  // to map a selection back to an exact source position.
+  typographer: false,
   highlight(code, lang) {
     if (lang && hljs.getLanguage(lang)) {
       try {
@@ -23,6 +26,19 @@ const md = require('markdown-it')({
 
 md.use(taskLists, { label: true, enabled: true });
 md.use(mark); // ==highlight== → <mark>
+
+// Tag each block with its source line range (data-line / data-line-end) so the
+// renderer can map a rendered-text selection back to an exact source offset for
+// the highlighter. Line numbers survive \r\n vs \n differences (both count as
+// one line), so the renderer converts them to char offsets against its own copy.
+md.core.ruler.push('source_lines', (state) => {
+  for (const token of state.tokens) {
+    if (token.map && token.type.endsWith('_open')) {
+      token.attrSet('data-line', String(token.map[0]));
+      token.attrSet('data-line-end', String(token.map[1]));
+    }
+  }
+});
 md.use(texmath, {
   engine: katex,
   delimiters: 'dollars',
