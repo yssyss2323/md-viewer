@@ -21,6 +21,7 @@ const STRINGS = {
     markdown: 'Markdown',
     allFiles: '모든 파일',
     pdfTitle: 'PDF로 내보내기',
+    htmlTitle: 'HTML로 내보내기',
     unsavedMsg: '저장하지 않은 변경 사항이 있습니다.',
     unsavedDetail: '편집한 내용을 저장할까요?',
     save: '저장',
@@ -32,6 +33,7 @@ const STRINGS = {
     markdown: 'Markdown',
     allFiles: 'All Files',
     pdfTitle: 'Export to PDF',
+    htmlTitle: 'Export to HTML',
     unsavedMsg: 'You have unsaved changes.',
     unsavedDetail: 'Do you want to save your edits?',
     save: 'Save',
@@ -448,8 +450,68 @@ function maybeRunScreenshot(win) {
     } catch (e) {
       console.error(e);
     }
+    // Never let the unsaved-changes prompt block the headless test harness.
+    windows.forEach((w) => { w.__forceClose = true; });
     app.quit();
   }, 2500);
+}
+
+// ---------- HTML export ----------
+
+function escHtml(s) {
+  return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+// KaTeX renders math with its own web fonts. For a self-contained export we
+// inline the woff2 files as data URIs (and drop the woff/ttf fallbacks) so the
+// math still looks right when the .html is opened anywhere.
+let katexCssCache = null;
+function inlineKatexCss() {
+  if (katexCssCache != null) return katexCssCache;
+  const dir = path.join(__dirname, 'node_modules', 'katex', 'dist');
+  let css = '';
+  try {
+    css = fs.readFileSync(path.join(dir, 'katex.min.css'), 'utf-8').replace(/url\(([^)]+)\)/g, (m, ref) => {
+      const r = ref.trim().replace(/^['"]|['"]$/g, '').split(/[?#]/)[0];
+      if (/^data:/.test(r)) return m;
+      if (!/\.woff2$/i.test(r)) return "url('')"; // keep woff2 only
+      try {
+        const fp = path.join(dir, r);
+        if (fs.existsSync(fp)) {
+          return `url(data:font/woff2;base64,${fs.readFileSync(fp).toString('base64')})`;
+        }
+      } catch {}
+      return "url('')";
+    });
+  } catch {}
+  katexCssCache = css;
+  return css;
+}
+
+function composeExportHtml({ content, theme, title, contentWidth, fontScale }) {
+  const appCss = fs.readFileSync(path.join(__dirname, 'renderer', 'styles.css'), 'utf-8');
+  const th = theme === 'dark' ? 'dark' : 'light';
+  const w = typeof contentWidth === 'number' ? contentWidth : 47;
+  const scale = typeof fontScale === 'number' ? fontScale : 1;
+  return `<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${escHtml(title || 'document')}</title>
+<style>${inlineKatexCss()}</style>
+<style>${appCss}</style>
+<style>
+  html, body { overflow: auto !important; height: auto !important; }
+  body { --content-w: ${w}rem; --reading-scale: ${scale}; }
+</style>
+</head>
+<body data-theme="${th}">
+<article class="markdown-body">
+${content}
+</article>
+</body>
+</html>`;
 }
 
 // ---------- IPC ----------
@@ -505,10 +567,66 @@ ipcMain.handle('dialog:unsaved', async (event) => {
   return response;
 });
 
+// Windows font families often surface under their internal English name
+// (e.g. "NanumSquareRoundOTF"). WPF exposes the same family's localized name
+// ("나눔스퀘어라운드OTF"), which is what apps like HWP show. We build a map
+// {englishFamily -> localizedName} once and use it purely as a friendlier
+// label; the English family is still what CSS matches against.
+// Async + promise-cached so it never blocks the main process (the PowerShell
+// call takes ~1s). Concurrent callers share the one in-flight promise.
+let fontNameMapPromise = null;
+function loadFontNameMap() {
+  if (fontNameMapPromise) return fontNameMapPromise;
+  fontNameMapPromise = new Promise((resolve) => {
+    const map = {};
+    if (process.platform !== 'win32') return resolve(map);
+    const script = [
+      "$ErrorActionPreference='SilentlyContinue'",
+      'Add-Type -AssemblyName PresentationCore',
+      '[Console]::OutputEncoding=[System.Text.Encoding]::UTF8',
+      '$ci=[System.Globalization.CultureInfo]::CurrentUICulture.IetfLanguageTag',
+      '$out=foreach($f in [System.Windows.Media.Fonts]::SystemFontFamilies){',
+      '  $n=$null',
+      '  foreach($k in $f.FamilyNames.Keys){ if($k.IetfLanguageTag -eq $ci){$n=$f.FamilyNames[$k];break} }',
+      "  if(-not $n){ foreach($k in $f.FamilyNames.Keys){ if($k.IetfLanguageTag -like 'ko*'){$n=$f.FamilyNames[$k];break} } }",
+      '  if(-not $n){ $n=$f.Source }',
+      '  [pscustomobject]@{s=$f.Source;n=$n}',
+      '}',
+      '$out | ConvertTo-Json -Compress',
+    ].join('\n');
+    const { execFile } = require('child_process');
+    execFile(
+      'powershell',
+      ['-NoProfile', '-NonInteractive', '-Command', script],
+      { encoding: 'utf8', timeout: 15000, maxBuffer: 32 * 1024 * 1024, windowsHide: true },
+      (err, stdout) => {
+        if (!err && stdout) {
+          try {
+            const arr = JSON.parse(stdout);
+            for (const it of Array.isArray(arr) ? arr : [arr]) {
+              if (it && it.s && it.n && it.s !== it.n) map[it.s] = it.n;
+            }
+          } catch {}
+        }
+        resolve(map);
+      }
+    );
+  });
+  return fontNameMapPromise;
+}
+
+let fontListCache = null;
 ipcMain.handle('fonts:list', async () => {
+  if (fontListCache) return fontListCache;
   try {
-    const list = await require('font-list').getFonts({ disableQuoting: true });
-    return [...new Set(list)].sort((a, b) => a.localeCompare(b));
+    const [list, map] = await Promise.all([
+      require('font-list').getFonts({ disableQuoting: true }),
+      loadFontNameMap(),
+    ]);
+    const items = [...new Set(list)].map((f) => ({ family: f, label: map[f] || f }));
+    items.sort((a, b) => a.label.localeCompare(b.label));
+    fontListCache = items;
+    return items;
   } catch {
     return [];
   }
@@ -579,6 +697,86 @@ ipcMain.handle('pdf:export', async (event, suggestedName) => {
   } catch (err) {
     return { ok: false, message: err.message };
   }
+});
+
+ipcMain.handle('html:export', async (event, payload) => {
+  const win = senderWindow(event);
+  const { canceled, filePath } = await dialog.showSaveDialog(win, {
+    title: mt('htmlTitle'),
+    defaultPath: (payload.title || 'document') + '.html',
+    filters: [{ name: 'HTML', extensions: ['html', 'htm'] }],
+  });
+  if (canceled || !filePath) return { ok: false, canceled: true };
+  try {
+    fs.writeFileSync(filePath, composeExportHtml(payload), 'utf-8');
+    return { ok: true, path: filePath };
+  } catch (err) {
+    return { ok: false, message: err.message };
+  }
+});
+
+// List a directory for the file-explorer sidebar: sub-folders first, then
+// markdown files, each sorted by name. Hidden entries are skipped. Called
+// lazily as folders are expanded, so large trees stay cheap.
+ipcMain.handle('dir:list', (_e, dirPath) => {
+  try {
+    const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+    const dirs = [];
+    const files = [];
+    for (const ent of entries) {
+      if (ent.name.startsWith('.')) continue;
+      const full = path.join(dirPath, ent.name);
+      let isDir = ent.isDirectory();
+      if (ent.isSymbolicLink()) {
+        try { isDir = fs.statSync(full).isDirectory(); } catch { continue; }
+      }
+      if (isDir) dirs.push({ name: ent.name, path: full, isDir: true });
+      else if (MD_EXTS.has(path.extname(ent.name).toLowerCase())) {
+        files.push({ name: ent.name, path: full, isDir: false });
+      }
+    }
+    const byName = (a, b) => a.name.localeCompare(b.name);
+    dirs.sort(byName);
+    files.sort(byName);
+    return [...dirs, ...files];
+  } catch {
+    return [];
+  }
+});
+
+// Recursively collect markdown files under a folder for the sidebar's file
+// search. Bounded in depth/count and skips heavy or hidden folders so it stays
+// fast; the renderer caches the result per folder.
+ipcMain.handle('dir:listAll', (_e, root) => {
+  const out = [];
+  const SKIP = new Set(['node_modules', '.git', '.svn', '.hg', 'dist', 'out', 'build', '.cache', '.next']);
+  const MAX = 8000;
+  const MAX_DEPTH = 24;
+  const walk = (dir, depth) => {
+    if (out.length >= MAX || depth > MAX_DEPTH) return;
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const ent of entries) {
+      if (out.length >= MAX) return;
+      if (ent.name.startsWith('.')) continue;
+      const full = path.join(dir, ent.name);
+      let isDir = ent.isDirectory();
+      if (ent.isSymbolicLink()) {
+        try { isDir = fs.statSync(full).isDirectory(); } catch { continue; }
+      }
+      if (isDir) {
+        if (!SKIP.has(ent.name.toLowerCase())) walk(full, depth + 1);
+      } else if (MD_EXTS.has(path.extname(ent.name).toLowerCase())) {
+        out.push({ name: ent.name, path: full, rel: path.relative(root, full) });
+      }
+    }
+  };
+  try { walk(root, 0); } catch {}
+  return out;
 });
 
 ipcMain.on('shell:openExternal', (_e, url) => {

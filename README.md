@@ -45,11 +45,12 @@ Grab the latest installer from the [**Releases**](https://github.com/yssyss2323/
 
 - **Clean, distraction-free reading** in light or dark themes
 - **Source view & editing** — flip to the raw markdown, edit, and save (`Ctrl+E` / `Ctrl+S`)
-- **One window per file** — open documents side by side, grouped under a single taskbar/dock icon
+- **File browser sidebar** — browse the current folder's markdown files as a tree, search them by name, and jump to recent files
+- **Highlighter & checkboxes** — select text to highlight it in several colors (or right-click / `Ctrl+H`) and tick task-list boxes right from the reading view; edits save into the file and `Ctrl+Z` undoes them
 - **Full markdown** — KaTeX math, Mermaid diagrams, syntax-highlighted code, tables, task lists, and GitHub-style callouts
 - **Any reading font** — bundled fonts or anything installed on your computer, with adjustable size and width
-- **Find, outline sidebar, PDF export**, and live auto-reload when the file changes
-- **Korean / English** interface
+- **Export to PDF or self-contained HTML**, plus outline sidebar, find, image zoom, and live auto-reload
+- **One window per file** and a **Korean / English** interface
 
 ## Keyboard Shortcuts
 
@@ -60,6 +61,8 @@ Grab the latest installer from the [**Releases**](https://github.com/yssyss2323/
 | Find | `Ctrl+F` (close with `Esc`) |
 | Toggle outline | `Ctrl+B` |
 | Toggle source view / edit | `Ctrl+E` |
+| Highlight selection | `Ctrl+H` (or select text → palette / right-click) |
+| Undo / redo (highlight, checkbox) | `Ctrl+Z` / `Ctrl+Y` |
 | Toggle theme | `Ctrl+Shift+L` |
 | Export to PDF | `Ctrl+P` |
 | Zoom in / out / reset | `Ctrl+=` / `Ctrl+-` / `Ctrl+0` (or `Ctrl` + wheel) |

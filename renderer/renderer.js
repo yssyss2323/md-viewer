@@ -25,6 +25,15 @@
     toast: $('#toast'),
     iconMoon: $('#icon-moon'),
     iconSun: $('#icon-sun'),
+    filebar: $('#filebar'),
+    fbTree: $('#fb-tree'),
+    fbResults: $('#fb-results'),
+    fbSearch: $('#fb-search'),
+    fbRecentList: $('#fb-recent-list'),
+    fbFolder: $('#fb-folder'),
+    lightbox: $('#img-lightbox'),
+    lightboxImg: $('#lightbox-img'),
+    hlBar: $('#hl-bar'),
   };
 
   const state = {
@@ -41,8 +50,18 @@
     lang: 'ko',
     maximized: false,
     sidebarOpen: false,
+    filebarOpen: false,
     headings: [],
   };
+
+  // Per-file scroll fraction, remembered across sessions (loaded from settings).
+  let scrollMem = {};
+
+  // Undo/redo history for edits made in the rendered view (highlights,
+  // checkboxes). Each entry is a full source snapshot. Source-editor typing has
+  // its own native undo, so these are separate.
+  let undoStack = [];
+  let redoStack = [];
 
   /* ---------- Localization ---------- */
 
@@ -57,6 +76,12 @@
       phFind: '찾기…', ttFindPrev: '이전 (Shift+Enter)', ttFindNext: '다음 (Enter)', ttFindClose: '닫기 (Esc)',
       outline: '목차', welcomeSub: '마크다운 파일을 열거나 창으로 끌어다 놓으세요', openFile: '파일 열기',
       recentFiles: '최근 파일', ttShowInFolder: '클릭하면 폴더에서 보기', dropHere: '파일을 놓아서 열기',
+      ttFiles: '파일 목록', files: '파일', ttHighlight: '형광펜 (Ctrl+H)', ttHlRemove: '형광펜 지우기',
+      ttExport: '내보내기', secExport: '내보내기', exportPdf: 'PDF로 내보내기', exportHtml: 'HTML로 내보내기', copyRendered: '서식 유지하여 복사',
+      fbNoFolder: '파일을 열면 이 폴더의 문서가 여기 표시됩니다',
+      phFbSearch: '파일 검색…', fbNoMatch: '일치하는 파일이 없습니다',
+      toastCopied: '복사됨 (서식 유지)', toastHtmlSaved: '저장됨: {0}', toastHtmlFail: '내보내기 실패: {0}',
+      toastNoSelection: '먼저 형광펜 칠할 텍스트를 선택하세요', toastHlFail: '선택한 부분을 원문에서 찾지 못했습니다',
       outlineEmpty: '제목이 없습니다', stats: '{0} 단어 · {1} 글자 · 약 {2}분', findNone: '없음',
       dotModified: '저장되지 않은 변경 (Ctrl+S)', dotChanged: '파일이 변경되어 새로고침됨',
       toastOpenFirst: '먼저 파일을 열어주세요', toastCopyFail: '복사에 실패했습니다', toastSaved: '저장됨',
@@ -64,7 +89,7 @@
       toastPdfSaved: '저장됨: {0}', toastPdfFail: '내보내기 실패: {0}', toastOpenFail: '파일을 열 수 없습니다: {0}',
       toastOpenFailMoved: '파일을 열 수 없습니다 (이동 또는 삭제됨)',
       toastWatchModified: '파일이 디스크에서 변경되었지만, 저장하지 않은 편집이 있어 반영하지 않았습니다',
-      fontListFail: '글꼴 목록을 불러올 수 없습니다',
+      fontListFail: '글꼴 목록을 불러올 수 없습니다', fontLoading: '글꼴 불러오는 중…',
       confirmDiscard: '저장하지 않은 변경 사항이 있습니다. 버리고 계속할까요?',
       copy: '복사', coNOTE: '노트', coTIP: '팁', coIMPORTANT: '중요', coWARNING: '주의', coCAUTION: '경고',
     },
@@ -78,6 +103,12 @@
       phFind: 'Find…', ttFindPrev: 'Previous (Shift+Enter)', ttFindNext: 'Next (Enter)', ttFindClose: 'Close (Esc)',
       outline: 'Outline', welcomeSub: 'Open a markdown file, or drag one onto the window', openFile: 'Open File',
       recentFiles: 'Recent files', ttShowInFolder: 'Click to show in folder', dropHere: 'Drop to open',
+      ttFiles: 'Files', files: 'Files', ttHighlight: 'Highlight (Ctrl+H)', ttHlRemove: 'Remove highlight',
+      ttExport: 'Export', secExport: 'Export', exportPdf: 'Export to PDF', exportHtml: 'Export to HTML', copyRendered: 'Copy with formatting',
+      fbNoFolder: 'Open a file to browse its folder here',
+      phFbSearch: 'Search files…', fbNoMatch: 'No matching files',
+      toastCopied: 'Copied (with formatting)', toastHtmlSaved: 'Saved: {0}', toastHtmlFail: 'Export failed: {0}',
+      toastNoSelection: 'Select the text you want to highlight first', toastHlFail: "Couldn't find the selection in the source",
       outlineEmpty: 'No headings', stats: '{0} words · {1} chars · ~{2} min', findNone: 'No results',
       dotModified: 'Unsaved changes (Ctrl+S)', dotChanged: 'File changed on disk — reloaded',
       toastOpenFirst: 'Open a file first', toastCopyFail: 'Copy failed', toastSaved: 'Saved',
@@ -85,7 +116,7 @@
       toastPdfSaved: 'Saved: {0}', toastPdfFail: 'Export failed: {0}', toastOpenFail: 'Could not open file: {0}',
       toastOpenFailMoved: 'Could not open file (moved or deleted)',
       toastWatchModified: 'The file changed on disk, but your unsaved edits were kept',
-      fontListFail: 'Could not load font list',
+      fontListFail: 'Could not load font list', fontLoading: 'Loading fonts…',
       confirmDiscard: 'You have unsaved changes. Discard and continue?',
       copy: 'Copy', coNOTE: 'Note', coTIP: 'Tip', coIMPORTANT: 'Important', coWARNING: 'Warning', coCAUTION: 'Caution',
     },
@@ -156,6 +187,8 @@
     if (fromDisk) {
       state.savedRaw = content;
       setModified(false);
+      undoStack = [];
+      redoStack = [];
       if (state.sourceMode) setSourceMode(false, { applyEdits: false, prompt: false });
     }
 
@@ -180,6 +213,7 @@
     buildOutline();
     decorateCodeBlocks();
     transformCallouts();
+    wireTaskCheckboxes();
     await runMermaid();
     updateStats();
 
@@ -188,8 +222,16 @@
     document.title = `${name} — Mymd`;
     el.statusPath.textContent = path;
 
-    el.scroll.scrollTop = keepScroll ? prevScroll : 0;
+    if (keepScroll) {
+      el.scroll.scrollTop = prevScroll;
+    } else if (fromDisk && scrollMem[path]) {
+      restoreScrollFraction(scrollMem[path]); // reopen where we left off
+    } else {
+      el.scroll.scrollTop = 0;
+    }
     updateScrollSpy();
+    if (state.filebarOpen && window.api.dirname(path) !== fbRoot) buildFilebar();
+    else updateFilebarActive();
     if (findOpen) runFind(el.findInput.value); // re-index matches against fresh DOM
   }
 
@@ -320,11 +362,32 @@
 
   let spyTimer = null;
   el.scroll.addEventListener('scroll', () => {
+    rememberScroll();
+    hideHlBar();
     if (spyTimer) return;
     spyTimer = setTimeout(() => {
       spyTimer = null;
       updateScrollSpy();
     }, 80);
+  });
+
+  /* ---------- Scroll position memory (per file) ---------- */
+
+  let scrollSaveTimer = null;
+  function rememberScroll() {
+    if (!state.path || state.sourceMode) return; // only track the rendered view
+    scrollMem[state.path] = scrollFraction();
+    clearTimeout(scrollSaveTimer);
+    scrollSaveTimer = setTimeout(persistScroll, 700);
+  }
+  function persistScroll() {
+    const keys = Object.keys(scrollMem);
+    if (keys.length > 60) keys.slice(0, keys.length - 60).forEach((k) => delete scrollMem[k]);
+    window.api.setSettings({ scroll: scrollMem });
+  }
+  window.addEventListener('beforeunload', () => {
+    if (state.path && !state.sourceMode) scrollMem[state.path] = scrollFraction();
+    persistScroll();
   });
 
   /* ---------- File opening ---------- */
@@ -373,6 +436,452 @@
       btn.addEventListener('click', () => openPath(p));
       li.appendChild(btn);
       el.recentList.appendChild(li);
+    }
+  }
+
+  /* ---------- In-view editing helpers ---------- */
+
+  function samePath(a, b) {
+    if (!a || !b) return false;
+    return window.api.platform === 'win32' ? a.toLowerCase() === b.toLowerCase() : a === b;
+  }
+
+  // Apply an edited source string: snapshot for undo, sync the editor, mark
+  // modified, and re-render (unless in source mode, where the editor already
+  // shows the text).
+  async function applyRawEdit(newRaw, { rerender = true } = {}) {
+    undoStack.push(state.raw);
+    if (undoStack.length > 100) undoStack.shift();
+    redoStack = [];
+    state.raw = newRaw;
+    el.editor.value = newRaw;
+    setModified(state.raw !== state.savedRaw);
+    if (rerender && !state.sourceMode) {
+      await display(state.path, state.raw, { keepScroll: true, fromDisk: false });
+    }
+  }
+
+  async function undoEdit() {
+    if (state.sourceMode || !undoStack.length) return; // textarea has native undo
+    redoStack.push(state.raw);
+    state.raw = undoStack.pop();
+    el.editor.value = state.raw;
+    setModified(state.raw !== state.savedRaw);
+    await display(state.path, state.raw, { keepScroll: true, fromDisk: false });
+  }
+
+  async function redoEdit() {
+    if (state.sourceMode || !redoStack.length) return;
+    undoStack.push(state.raw);
+    state.raw = redoStack.pop();
+    el.editor.value = state.raw;
+    setModified(state.raw !== state.savedRaw);
+    await display(state.path, state.raw, { keepScroll: true, fromDisk: false });
+  }
+
+  /* ---------- Task-list checkbox toggle ---------- */
+
+  function wireTaskCheckboxes() {
+    el.content.querySelectorAll('.task-list-item input[type="checkbox"]').forEach((cb, i) => {
+      cb.dataset.taskIndex = String(i);
+      cb.addEventListener('change', onTaskToggle);
+    });
+  }
+
+  // The Nth checkbox in the document maps to the Nth task marker in the source.
+  function onTaskToggle(e) {
+    const cb = e.currentTarget;
+    const index = Number(cb.dataset.taskIndex);
+    let i = 0;
+    const re = /^([ \t]*(?:[-*+]|\d+[.)])[ \t]+\[)([ xX])(\])/gm;
+    const newRaw = state.raw.replace(re, (m, pre, mk, post) =>
+      i++ === index ? pre + (cb.checked ? 'x' : ' ') + post : m
+    );
+    applyRawEdit(newRaw, { rerender: false }); // native toggle already updated the DOM
+  }
+
+  /* ---------- Highlighter (== ==) ---------- */
+
+  function contentTextOffset(node, offset) {
+    const walker = document.createTreeWalker(el.content, NodeFilter.SHOW_TEXT);
+    let acc = 0;
+    let n;
+    while ((n = walker.nextNode())) {
+      if (n === node) return acc + offset;
+      acc += n.nodeValue.length;
+    }
+    return acc + offset;
+  }
+
+  function nthIndexOf(hay, needle, n) {
+    let idx = -1;
+    let from = 0;
+    let count = 0;
+    while ((idx = hay.indexOf(needle, from)) !== -1) {
+      if (count === n) return idx;
+      count++;
+      from = idx + needle.length;
+    }
+    return -1;
+  }
+
+  // Apply / recolor / remove a highlight over the current selection, editing the
+  // source so it survives reload. `color` is yellow | green | pink | blue |
+  // remove. Yellow uses portable ==marks==; other colors use <mark class="mk-…">.
+  // Picking the same color again toggles it off.
+  async function applyHighlight(color) {
+    if (state.sourceMode || !state.path) { toast(t('toastNoSelection')); return; }
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0 || sel.isCollapsed) { toast(t('toastNoSelection')); return; }
+    const range = sel.getRangeAt(0);
+    if (!el.content.contains(range.commonAncestorContainer)) { toast(t('toastNoSelection')); return; }
+
+    const rawSel = sel.toString();
+    if (!rawSel.trim()) { toast(t('toastNoSelection')); return; }
+    const lead = rawSel.length - rawSel.trimStart().length;
+    const needle = rawSel.trim();
+    if (needle.includes('\n')) { toast(t('toastHlFail')); return; } // single block only
+
+    const fullText = el.content.textContent;
+    const startOff = contentTextOffset(range.startContainer, range.startOffset) + lead;
+    let occ = 0;
+    let hit = -1;
+    let from = 0;
+    while ((hit = fullText.indexOf(needle, from)) !== -1 && hit < startOff) {
+      occ++;
+      from = hit + needle.length;
+    }
+
+    const raw = state.raw;
+    let rawIdx = nthIndexOf(raw, needle, occ);
+    if (rawIdx === -1) rawIdx = raw.indexOf(needle);
+    if (rawIdx === -1) { toast(t('toastHlFail')); return; }
+    const rawEnd = rawIdx + needle.length;
+
+    // Detect an existing wrapper around this occurrence: == == or <mark …>.
+    let wrapStart = -1;
+    let wrapEnd = -1;
+    let curColor = null;
+    if (raw.slice(rawIdx - 2, rawIdx) === '==' && raw.slice(rawEnd, rawEnd + 2) === '==') {
+      wrapStart = rawIdx - 2;
+      wrapEnd = rawEnd + 2;
+      curColor = 'yellow';
+    } else {
+      const openTag = raw.slice(0, rawIdx).match(/<mark\b([^>]*)>$/i);
+      if (openTag && /^<\/mark>/i.test(raw.slice(rawEnd))) {
+        wrapStart = rawIdx - openTag[0].length;
+        wrapEnd = rawEnd + '</mark>'.length;
+        curColor = (openTag[1].match(/class\s*=\s*["']mk-(\w+)["']/i) || [])[1] || 'yellow';
+      }
+    }
+    const wrapped = wrapStart !== -1;
+    const wrap = (c) => (c === 'yellow' ? `==${needle}==` : `<mark class="mk-${c}">${needle}</mark>`);
+
+    let newRaw;
+    if (color === 'remove' || (wrapped && curColor === color)) {
+      if (!wrapped) { sel.removeAllRanges(); hideHlBar(); return; }
+      newRaw = raw.slice(0, wrapStart) + needle + raw.slice(wrapEnd);
+    } else if (wrapped) {
+      newRaw = raw.slice(0, wrapStart) + wrap(color) + raw.slice(wrapEnd);
+    } else {
+      newRaw = raw.slice(0, rawIdx) + wrap(color) + raw.slice(rawEnd);
+    }
+    sel.removeAllRanges();
+    hideHlBar();
+    await applyRawEdit(newRaw);
+  }
+
+  /* ---------- Floating highlight palette ---------- */
+
+  function hideHlBar() {
+    el.hlBar.classList.add('hidden');
+  }
+
+  function showHlBar() {
+    if (state.sourceMode) return;
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0 || sel.isCollapsed) { hideHlBar(); return; }
+    const range = sel.getRangeAt(0);
+    if (!el.content.contains(range.commonAncestorContainer) || !sel.toString().trim()) {
+      hideHlBar();
+      return;
+    }
+    const rect = range.getBoundingClientRect();
+    if (!rect || (rect.width === 0 && rect.height === 0)) { hideHlBar(); return; }
+    el.hlBar.classList.remove('hidden');
+    const bw = el.hlBar.offsetWidth;
+    const bh = el.hlBar.offsetHeight;
+    let left = rect.left + rect.width / 2 - bw / 2;
+    left = Math.max(8, Math.min(window.innerWidth - bw - 8, left));
+    let top = rect.top - bh - 8;
+    if (top < 46) top = rect.bottom + 8; // flip below when near the titlebar
+    el.hlBar.style.left = left + 'px';
+    el.hlBar.style.top = top + 'px';
+  }
+
+  el.content.addEventListener('mouseup', () => setTimeout(showHlBar, 0));
+  el.hlBar.addEventListener('mousedown', (e) => e.preventDefault()); // keep the selection alive
+  el.hlBar.querySelectorAll('[data-color]').forEach((b) => {
+    b.addEventListener('click', () => applyHighlight(b.dataset.color));
+  });
+  document.addEventListener('selectionchange', () => {
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed) hideHlBar();
+  });
+  document.addEventListener('mousedown', (e) => {
+    if (!e.target.closest('#hl-bar')) hideHlBar();
+  });
+  // Right-click on a selection paints it with the default (yellow) highlight.
+  el.content.addEventListener('contextmenu', (e) => {
+    const sel = window.getSelection();
+    if (state.sourceMode || !sel || sel.rangeCount === 0 || sel.isCollapsed) return;
+    if (!el.content.contains(sel.getRangeAt(0).commonAncestorContainer)) return;
+    e.preventDefault();
+    applyHighlight('yellow');
+  });
+
+  /* ---------- Image lightbox ---------- */
+
+  function openLightbox(src) {
+    el.lightboxImg.src = src;
+    el.lightbox.classList.remove('hidden');
+  }
+  function closeLightbox() {
+    el.lightbox.classList.add('hidden');
+    el.lightboxImg.removeAttribute('src');
+  }
+  el.lightbox.addEventListener('click', closeLightbox);
+  el.content.addEventListener('click', (e) => {
+    const img = e.target.closest('img');
+    if (img && !img.closest('a')) {
+      e.preventDefault();
+      openLightbox(img.currentSrc || img.src);
+    }
+  });
+
+  /* ---------- Export HTML / copy rendered ---------- */
+
+  async function exportHtmlNow() {
+    if (!state.path) { toast(t('toastOpenFirst')); return; }
+    if (state.sourceMode) await setSourceMode(false);
+    const title = window.api.basename(state.path).replace(/\.[^.]+$/, '');
+    const res = await window.api.exportHtml({
+      content: el.content.innerHTML,
+      theme: state.theme,
+      title,
+      contentWidth: state.contentWidth,
+      fontScale: state.fontScale,
+    });
+    if (res.ok) toast(t('toastHtmlSaved', res.path));
+    else if (!res.canceled) toast(t('toastHtmlFail', res.message));
+  }
+
+  async function copyRendered() {
+    if (!state.path || state.sourceMode) { toast(t('toastOpenFirst')); return; }
+    try {
+      const html = el.content.innerHTML;
+      const text = el.content.innerText;
+      if (window.ClipboardItem && navigator.clipboard.write) {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            'text/html': new Blob([html], { type: 'text/html' }),
+            'text/plain': new Blob([text], { type: 'text/plain' }),
+          }),
+        ]);
+      } else {
+        await navigator.clipboard.writeText(text);
+      }
+      toast(t('toastCopied'));
+    } catch {
+      toast(t('toastCopyFail'));
+    }
+  }
+
+  /* ---------- File-explorer sidebar ---------- */
+
+  let fbRoot = null;
+  let fbAll = []; // recursive md-file index for search
+  let fbAllRoot = null;
+
+  function setFilebar(open) {
+    state.filebarOpen = open;
+    el.filebar.classList.toggle('collapsed', !open);
+    $('#btn-files').classList.toggle('active', open);
+    if (open) {
+      setSidebar(false);
+      buildFilebar();
+    }
+  }
+
+  async function buildFilebar() {
+    refreshFbRecent();
+    el.fbSearch.value = '';
+    el.fbResults.classList.add('hidden');
+    el.fbResults.innerHTML = '';
+    el.fbTree.classList.remove('hidden');
+    el.fbTree.innerHTML = '';
+    const root = state.path ? window.api.dirname(state.path) : null;
+    fbRoot = root;
+    el.fbFolder.textContent = t('files');
+    if (!root) {
+      el.fbTree.innerHTML = `<div class="fb-empty">${t('fbNoFolder')}</div>`;
+      return;
+    }
+    const entries = await window.api.listDir(root);
+    // Show the current directory itself as an expandable root node, so you can
+    // always see which folder you're in (full path on hover) — even a leaf
+    // folder no longer looks like a bare file list.
+    const rootRow = document.createElement('div');
+    rootRow.className = 'fb-row fb-dir fb-root expanded';
+    rootRow.dataset.path = root;
+    rootRow.title = root;
+    rootRow.style.paddingLeft = '8px';
+    const caret = document.createElement('span');
+    caret.className = 'fb-caret';
+    caret.textContent = '▶';
+    const ico = document.createElement('span');
+    ico.className = 'fb-ico';
+    ico.innerHTML = FB_ICON.dir;
+    const name = document.createElement('span');
+    name.className = 'fb-name';
+    name.textContent = window.api.basename(root) || root;
+    rootRow.append(caret, ico, name);
+    const kids = document.createElement('div');
+    kids.className = 'fb-children';
+    renderTreeEntries(kids, entries, 1);
+    rootRow.addEventListener('click', () => {
+      const opening = kids.hidden;
+      kids.hidden = !opening;
+      rootRow.classList.toggle('expanded', opening);
+    });
+    el.fbTree.append(rootRow, kids);
+  }
+
+  // Build (once per folder) the recursive index used by the search box.
+  async function ensureFbIndex() {
+    if (fbAllRoot === fbRoot && fbAll.length) return;
+    fbAllRoot = fbRoot;
+    fbAll = fbRoot ? await window.api.listAllFiles(fbRoot) : [];
+  }
+
+  async function fbSearch(query) {
+    const q = query.trim().toLowerCase();
+    if (!q) {
+      el.fbResults.classList.add('hidden');
+      el.fbResults.innerHTML = '';
+      el.fbTree.classList.remove('hidden');
+      return;
+    }
+    await ensureFbIndex();
+    el.fbTree.classList.add('hidden');
+    el.fbResults.classList.remove('hidden');
+    el.fbResults.innerHTML = '';
+    const matches = fbAll
+      .filter((f) => f.name.toLowerCase().includes(q) || f.rel.toLowerCase().includes(q))
+      .slice(0, 300);
+    if (!matches.length) {
+      el.fbResults.innerHTML = `<div class="fb-empty">${t('fbNoMatch')}</div>`;
+      return;
+    }
+    for (const f of matches) {
+      const row = document.createElement('div');
+      row.className = 'fb-row fb-file' + (samePath(f.path, state.path) ? ' active' : '');
+      row.dataset.path = f.path;
+      row.title = f.rel;
+      const ico = document.createElement('span');
+      ico.className = 'fb-ico';
+      ico.innerHTML = FB_ICON.file;
+      const name = document.createElement('span');
+      name.className = 'fb-name';
+      name.textContent = f.name;
+      row.append(ico, name);
+      const dir = f.rel.slice(0, f.rel.length - f.name.length).replace(/[\\/]+$/, '');
+      if (dir) {
+        const rel = document.createElement('span');
+        rel.className = 'fb-rel';
+        rel.textContent = dir;
+        row.append(rel);
+      }
+      row.addEventListener('click', () => openPath(f.path));
+      el.fbResults.appendChild(row);
+    }
+  }
+
+  const FB_ICON = {
+    dir: '<svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M1.75 3A1.75 1.75 0 0 0 0 4.75v6.5C0 12.2.8 13 1.75 13h12.5A1.75 1.75 0 0 0 16 11.25v-5.5A1.75 1.75 0 0 0 14.25 4H7.4L6.15 2.68A1.5 1.5 0 0 0 5.06 2.2H1.75Z"/></svg>',
+    file: '<svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M4 1.5A1.5 1.5 0 0 0 2.5 3v10A1.5 1.5 0 0 0 4 14.5h8a1.5 1.5 0 0 0 1.5-1.5V5.62a1.5 1.5 0 0 0-.44-1.06l-2.62-2.62A1.5 1.5 0 0 0 9.38 1.5H4Z" opacity=".85"/></svg>',
+  };
+
+  function renderTreeEntries(container, entries, depth) {
+    for (const ent of entries) {
+      const row = document.createElement('div');
+      row.className = 'fb-row ' + (ent.isDir ? 'fb-dir' : 'fb-file');
+      row.style.paddingLeft = 8 + depth * 14 + 'px';
+      row.dataset.path = ent.path;
+      row.title = ent.name;
+      if (!ent.isDir && samePath(ent.path, state.path)) row.classList.add('active');
+
+      const caret = document.createElement('span');
+      caret.className = 'fb-caret';
+      caret.textContent = ent.isDir ? '▶' : '';
+      const ico = document.createElement('span');
+      ico.className = 'fb-ico';
+      ico.innerHTML = ent.isDir ? FB_ICON.dir : FB_ICON.file;
+      const name = document.createElement('span');
+      name.className = 'fb-name';
+      name.textContent = ent.name;
+      row.append(caret, ico, name);
+
+      if (ent.isDir) {
+        const kids = document.createElement('div');
+        kids.className = 'fb-children';
+        kids.hidden = true;
+        let loaded = false;
+        row.addEventListener('click', async () => {
+          const opening = kids.hidden;
+          kids.hidden = !opening;
+          row.classList.toggle('expanded', opening);
+          if (opening && !loaded) {
+            loaded = true;
+            const sub = await window.api.listDir(ent.path);
+            renderTreeEntries(kids, sub, depth + 1);
+          }
+        });
+        container.append(row, kids);
+      } else {
+        row.addEventListener('click', () => openPath(ent.path));
+        container.append(row);
+      }
+    }
+  }
+
+  function updateFilebarActive() {
+    if (!state.filebarOpen) return;
+    el.filebar.querySelectorAll('.fb-row.fb-file[data-path]').forEach((r) => {
+      r.classList.toggle('active', samePath(r.dataset.path, state.path));
+    });
+    el.fbRecentList.querySelectorAll('button[data-path]').forEach((b) => {
+      b.classList.toggle('active', samePath(b.dataset.path, state.path));
+    });
+  }
+
+  async function refreshFbRecent() {
+    const s = await window.api.getSettings();
+    const recent = (s.recent || []).slice(0, 12);
+    el.fbRecentList.innerHTML = '';
+    for (const p of recent) {
+      const li = document.createElement('li');
+      const btn = document.createElement('button');
+      btn.dataset.path = p;
+      btn.title = p;
+      const name = document.createElement('span');
+      name.className = 'fb-recent-name';
+      name.textContent = window.api.basename(p);
+      btn.appendChild(name);
+      if (samePath(p, state.path)) btn.classList.add('active');
+      btn.addEventListener('click', () => openPath(p));
+      li.appendChild(btn);
+      el.fbRecentList.appendChild(li);
     }
   }
 
@@ -460,6 +969,9 @@
   el.editor.addEventListener('input', () => {
     state.raw = el.editor.value;
     setModified(state.raw !== state.savedRaw);
+    // Manual edits use the textarea's own undo; drop the rendered-view history.
+    undoStack = [];
+    redoStack = [];
   });
 
   el.editor.addEventListener('keydown', (e) => {
@@ -557,6 +1069,7 @@
     if (sysFontsLoaded) return;
     sysFontsLoaded = true;
     const list = $('#fm-syslist');
+    list.innerHTML = `<div class="fm-empty">${t('fontLoading')}</div>`;
     try {
       const fonts = await window.api.listFonts();
       if (!fonts || !fonts.length) {
@@ -564,13 +1077,17 @@
         return;
       }
       list.innerHTML = '';
-      for (const fam of fonts) {
+      for (const it of fonts) {
+        // Back-compat: entries may be plain strings or { family, label }.
+        const fam = typeof it === 'string' ? it : it.family;
+        const label = typeof it === 'string' ? it : it.label || it.family;
         const btn = document.createElement('button');
         btn.className = 'fm-sysitem';
         btn.dataset.family = fam;
-        btn.textContent = fam;
+        btn.dataset.label = label;
+        btn.textContent = label;
         btn.style.fontFamily = `"${fam}"`;
-        btn.title = fam;
+        btn.title = label === fam ? fam : `${label} · ${fam}`;
         if (state.font === 'sys:' + fam) btn.classList.add('active');
         btn.addEventListener('click', () => applyFont('sys:' + fam));
         list.appendChild(btn);
@@ -583,7 +1100,8 @@
   function filterSystemFonts(q) {
     const query = q.trim().toLowerCase();
     document.querySelectorAll('.fm-sysitem').forEach((it) => {
-      it.style.display = it.dataset.family.toLowerCase().includes(query) ? '' : 'none';
+      const hay = (it.dataset.family + ' ' + (it.dataset.label || '')).toLowerCase();
+      it.style.display = hay.includes(query) ? '' : 'none';
     });
   }
 
@@ -600,6 +1118,21 @@
     fontMenuOpen = open ?? !fontMenuOpen;
     $('#font-menu').classList.toggle('hidden', !fontMenuOpen);
     $('#btn-font').classList.toggle('active', fontMenuOpen);
+    if (fontMenuOpen) toggleExportMenu(false);
+  }
+
+  let exportMenuOpen = false;
+  function toggleExportMenu(open) {
+    exportMenuOpen = open ?? !exportMenuOpen;
+    const m = $('#export-menu');
+    m.classList.toggle('hidden', !exportMenuOpen);
+    $('#btn-export').classList.toggle('active', exportMenuOpen);
+    if (exportMenuOpen) {
+      toggleFontMenu(false);
+      const r = $('#btn-export').getBoundingClientRect();
+      const w = m.offsetWidth || 200;
+      m.style.left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8)) + 'px';
+    }
   }
 
   $('#btn-font').addEventListener('click', (e) => {
@@ -623,6 +1156,9 @@
     if (fontMenuOpen && !e.target.closest('#font-menu') && !e.target.closest('#btn-font')) {
       toggleFontMenu(false);
     }
+    if (exportMenuOpen && !e.target.closest('#export-menu') && !e.target.closest('#btn-export')) {
+      toggleExportMenu(false);
+    }
   });
 
   /* ---------- Sidebar / theme / zoom ---------- */
@@ -631,6 +1167,7 @@
     state.sidebarOpen = open;
     el.sidebar.classList.toggle('collapsed', !open);
     $('#btn-sidebar').classList.toggle('active', open);
+    if (open) setFilebar(false);
   }
 
   async function setTheme(theme, { persist = true } = {}) {
@@ -791,16 +1328,21 @@
 
   /* ---------- Buttons ---------- */
 
-  $('#btn-open').addEventListener('click', openViaDialog);
+  $('#btn-files').addEventListener('click', () => setFilebar(!state.filebarOpen));
+  $('#fb-open').addEventListener('click', openViaDialog);
+  el.fbSearch.addEventListener('input', (e) => fbSearch(e.target.value));
   $('#welcome-open').addEventListener('click', openViaDialog);
   $('#btn-save').addEventListener('click', () => saveFile());
   $('#btn-sidebar').addEventListener('click', () => setSidebar(!state.sidebarOpen));
   $('#btn-source').addEventListener('click', () => setSourceMode(!state.sourceMode));
+  $('#btn-export').addEventListener('click', (e) => { e.stopPropagation(); toggleExportMenu(); });
+  $('#ex-pdf').addEventListener('click', () => { toggleExportMenu(false); exportPdf(); });
+  $('#ex-html').addEventListener('click', () => { toggleExportMenu(false); exportHtmlNow(); });
+  $('#ex-copy').addEventListener('click', () => { toggleExportMenu(false); copyRendered(); });
   $('#btn-search').addEventListener('click', () => (findOpen ? closeFind() : openFind()));
   $('#btn-theme').addEventListener('click', () =>
     setTheme(state.theme === 'dark' ? 'light' : 'dark')
   );
-  $('#btn-pdf').addEventListener('click', exportPdf);
   el.statusPath.addEventListener('click', () => {
     if (state.path) window.api.showInFolder(state.path);
   });
@@ -842,8 +1384,20 @@
 
   window.addEventListener('keydown', (e) => {
     const ctrl = e.ctrlKey || e.metaKey;
+    if (e.key === 'Escape' && !el.lightbox.classList.contains('hidden')) {
+      closeLightbox();
+      return;
+    }
+    if (e.key === 'Escape' && !el.hlBar.classList.contains('hidden')) {
+      hideHlBar();
+      return;
+    }
     if (e.key === 'Escape' && fontMenuOpen) {
       toggleFontMenu(false);
+      return;
+    }
+    if (e.key === 'Escape' && exportMenuOpen) {
+      toggleExportMenu(false);
       return;
     }
     if (e.key === 'Escape' && findOpen) {
@@ -867,6 +1421,21 @@
       case 'e':
         e.preventDefault();
         setSourceMode(!state.sourceMode);
+        break;
+      case 'h':
+        e.preventDefault();
+        applyHighlight('yellow');
+        break;
+      case 'z':
+        if (state.sourceMode) break; // let the textarea's native undo run
+        e.preventDefault();
+        if (e.shiftKey) redoEdit();
+        else undoEdit();
+        break;
+      case 'y':
+        if (state.sourceMode) break;
+        e.preventDefault();
+        redoEdit();
         break;
       case 's':
         e.preventDefault();
@@ -954,6 +1523,10 @@
     applyFont(s.font || 'pretendard', { persist: false });
     applyFontScale(typeof s.fontScale === 'number' ? s.fontScale : 1, { persist: false });
     applyContentWidth(typeof s.contentWidth === 'number' ? s.contentWidth : 47, { persist: false });
+    scrollMem = s.scroll && typeof s.scroll === 'object' ? s.scroll : {};
     refreshRecent();
+    // Warm the system-font list in the background so the settings menu opens
+    // instantly the first time (font enumeration + localized names take ~1s).
+    setTimeout(() => loadSystemFonts(), 800);
   })();
 })();

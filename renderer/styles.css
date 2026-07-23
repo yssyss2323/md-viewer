@@ -250,6 +250,31 @@ body.platform-darwin #tb-logo { margin-left: 0; }
   white-space: nowrap;
 }
 
+/* ---------- Export menu (toolbar dropdown) ---------- */
+#export-menu {
+  position: fixed;
+  top: calc(var(--titlebar-h) - 2px);
+  width: 200px;
+  padding: 6px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  z-index: 60;
+  -webkit-app-region: no-drag;
+}
+.ex-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: var(--fg);
+  transition: background 0.1s;
+}
+.ex-item:hover { background: var(--bg-hover); }
+
 /* ---------- Font menu ---------- */
 #font-menu {
   position: fixed;
@@ -362,6 +387,18 @@ body.platform-darwin #tb-logo { margin-left: 0; }
 .fm-lang:hover { background: var(--bg-hover); }
 .fm-lang.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
 
+.fm-action {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: var(--fg);
+  transition: background 0.1s;
+}
+.fm-action:hover { background: var(--bg-hover); }
+
 /* ---------- Layout ---------- */
 #layout {
   display: flex;
@@ -375,7 +412,8 @@ body.platform-darwin #tb-logo { margin-left: 0; }
   border-right: 1px solid var(--border);
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 10px 8px 24px;
+  /* Clear the fixed status bar so the last item isn't hidden behind it. */
+  padding: 10px 8px calc(var(--statusbar-h) + 14px);
   transition: margin-left 0.22s ease, opacity 0.22s ease;
   background: var(--bg);
 }
@@ -420,6 +458,154 @@ body.platform-darwin #tb-logo { margin-left: 0; }
   font-size: 12.5px;
   color: var(--fg-faint);
 }
+
+/* ---------- File-explorer sidebar ---------- */
+#filebar {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* Clear the fixed status bar so the last recent file isn't hidden behind it. */
+  padding: 8px 6px calc(var(--statusbar-h) + 14px);
+  display: flex;
+  flex-direction: column;
+  transition: margin-left 0.22s ease, opacity 0.22s ease;
+  background: var(--bg);
+  -webkit-user-select: none;
+  user-select: none;
+}
+/* The search field is the one place text selection/caret makes sense. */
+#fb-search {
+  -webkit-user-select: text;
+  user-select: text;
+}
+#filebar.collapsed {
+  margin-left: calc(-1 * var(--sidebar-w));
+  opacity: 0;
+  pointer-events: none;
+}
+#fb-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 6px 8px 8px;
+}
+#fb-folder {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#fb-open {
+  flex-shrink: 0;
+  width: 24px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: var(--fg-muted);
+  transition: background 0.1s, color 0.1s;
+}
+#fb-open:hover { background: var(--bg-hover); color: var(--fg); }
+
+#fb-search {
+  width: calc(100% - 12px);
+  margin: 0 6px 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-soft);
+  color: var(--fg);
+  font-family: inherit;
+  font-size: 12.5px;
+  outline: none;
+}
+#fb-search:focus { border-color: var(--accent); }
+
+#fb-tree, #fb-results { flex: 1; min-height: 40px; }
+
+.fb-row .fb-rel {
+  flex-shrink: 1;
+  min-width: 0;
+  margin-left: auto;
+  padding-left: 8px;
+  font-size: 10.5px;
+  color: var(--fg-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  direction: rtl;
+  text-align: right;
+}
+
+.fb-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12.8px;
+  line-height: 1.4;
+  color: var(--fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background 0.1s, color 0.1s;
+}
+.fb-row:hover { background: var(--bg-hover); color: var(--fg); }
+.fb-row.active { color: var(--accent); background: var(--accent-soft); font-weight: 500; }
+.fb-row .fb-ico { flex-shrink: 0; width: 14px; height: 14px; color: var(--fg-faint); display: inline-flex; }
+.fb-row.active .fb-ico { color: var(--accent); }
+.fb-row .fb-caret {
+  flex-shrink: 0;
+  width: 12px;
+  color: var(--fg-faint);
+  transition: transform 0.12s;
+  font-size: 9px;
+  text-align: center;
+}
+.fb-row.expanded .fb-caret { transform: rotate(90deg); }
+.fb-row .fb-name { overflow: hidden; text-overflow: ellipsis; }
+.fb-file .fb-caret { visibility: hidden; }
+.fb-root .fb-name { font-weight: 600; color: var(--fg); }
+.fb-empty { padding: 8px 12px; font-size: 12.5px; color: var(--fg-faint); line-height: 1.5; }
+
+#fb-recent { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 8px; }
+.fb-section {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+  padding: 4px 12px 8px;
+}
+#fb-recent-list { list-style: none; margin: 0; padding: 0; }
+#fb-recent-list button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  color: var(--fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background 0.1s, color 0.1s;
+}
+#fb-recent-list button:hover { background: var(--bg-hover); color: var(--fg); }
+#fb-recent-list button.active { color: var(--accent); }
+#fb-recent-list .fb-recent-name { color: var(--fg); }
+#fb-recent-list button:hover .fb-recent-name { color: var(--fg); }
 
 #content-scroll {
   flex: 1;
@@ -593,6 +779,32 @@ body.platform-darwin #tb-logo { margin-left: 0; }
   background: var(--bg);
 }
 
+/* ---------- Image lightbox ---------- */
+#img-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  background: color-mix(in srgb, #000 68%, transparent);
+  backdrop-filter: blur(3px);
+  cursor: zoom-out;
+  animation: lb-fade 0.12s ease;
+}
+@keyframes lb-fade { from { opacity: 0; } to { opacity: 1; } }
+#lightbox-img {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 6px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
+  -webkit-user-select: none;
+  user-select: none;
+}
+.markdown-body img { cursor: zoom-in; }
+.markdown-body a img { cursor: pointer; }
+
 #toast {
   position: fixed;
   bottom: 44px;
@@ -665,7 +877,49 @@ body.platform-darwin #tb-logo { margin-left: 0; }
   padding: 0.05em 0.2em;
   border-radius: 3px;
 }
+.markdown-body mark.mk-green { background: rgba(120, 210, 120, 0.42); }
+.markdown-body mark.mk-pink { background: rgba(240, 150, 190, 0.42); }
+.markdown-body mark.mk-blue { background: rgba(120, 180, 240, 0.42); }
 body[data-theme="dark"] .markdown-body mark { background: rgba(210, 160, 40, 0.35); }
+body[data-theme="dark"] .markdown-body mark.mk-green { background: rgba(90, 180, 90, 0.34); }
+body[data-theme="dark"] .markdown-body mark.mk-pink { background: rgba(220, 120, 165, 0.34); }
+body[data-theme="dark"] .markdown-body mark.mk-blue { background: rgba(90, 150, 225, 0.34); }
+
+/* Floating highlight palette (appears over a text selection) */
+#hl-bar {
+  position: fixed;
+  z-index: 118;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 7px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  animation: hl-pop 0.1s ease;
+}
+@keyframes hl-pop { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+.hl-swatch {
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.14);
+  transition: transform 0.1s;
+}
+.hl-swatch:hover { transform: scale(1.18); }
+.hl-remove {
+  width: 24px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  color: var(--fg-muted);
+  margin-left: 1px;
+  transition: background 0.1s, color 0.1s;
+}
+.hl-remove:hover { background: var(--bg-hover); color: var(--fg); }
 
 /* Lists */
 .markdown-body ul, .markdown-body ol {
@@ -688,8 +942,9 @@ body[data-theme="dark"] .markdown-body mark { background: rgba(210, 160, 40, 0.3
   border: 1.5px solid var(--fg-faint);
   border-radius: 4px;
   position: relative;
-  cursor: default;
+  cursor: pointer;
 }
+.markdown-body .task-list-item input[type="checkbox"]:hover { border-color: var(--accent); }
 .markdown-body .task-list-item input[type="checkbox"]:checked {
   background: var(--accent);
   border-color: var(--accent);

@@ -5,6 +5,7 @@ const hljs = require('highlight.js');
 const katex = require('katex');
 const texmath = require('markdown-it-texmath');
 const taskLists = require('markdown-it-task-lists');
+const mark = require('markdown-it-mark');
 
 const md = require('markdown-it')({
   html: true,
@@ -20,7 +21,8 @@ const md = require('markdown-it')({
   },
 });
 
-md.use(taskLists, { label: true });
+md.use(taskLists, { label: true, enabled: true });
+md.use(mark); // ==highlight== → <mark>
 md.use(texmath, {
   engine: katex,
   delimiters: 'dollars',
@@ -91,6 +93,9 @@ contextBridge.exposeInMainWorld('api', {
   setSettings: (patch) => ipcRenderer.invoke('settings:set', patch),
   clearRecent: () => ipcRenderer.invoke('recent:clear'),
   exportPdf: (name) => ipcRenderer.invoke('pdf:export', name),
+  exportHtml: (payload) => ipcRenderer.invoke('html:export', payload),
+  listDir: (dirPath) => ipcRenderer.invoke('dir:list', dirPath),
+  listAllFiles: (root) => ipcRenderer.invoke('dir:listAll', root),
 
   openExternal: (url) => ipcRenderer.send('shell:openExternal', url),
   showInFolder: (p) => ipcRenderer.send('shell:showInFolder', p),

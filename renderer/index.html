@@ -13,7 +13,7 @@
   <header id="titlebar">
     <div class="tb-left">
       <img id="tb-logo" src="logo.png" alt="Mymd" draggable="false" />
-      <button class="tb-btn" id="btn-open" data-i18n-title="ttOpen" title="파일 열기 (Ctrl+O)">
+      <button class="tb-btn" id="btn-files" data-i18n-title="ttFiles" title="파일">
         <svg viewBox="0 0 16 16" width="15" height="15"><path fill="currentColor" d="M1.5 3A1.5 1.5 0 0 1 3 1.5h3.1c.4 0 .78.16 1.06.44l1 1c.1.1.22.15.35.15H13A1.5 1.5 0 0 1 14.5 4.6l-.02.15-1.2 7A1.5 1.5 0 0 1 11.8 13H3.5A2 2 0 0 1 1.5 11V3Zm1 3.5V11a1 1 0 0 0 1 1h.05L2.6 6.9a.5.5 0 0 1 .49-.4H2.5Zm.86 5.5h8.44a.5.5 0 0 0 .49-.42l1.13-6.58H4.14L3.36 12ZM3 2.5a.5.5 0 0 0-.5.5v2h10.29l.07-.4a.5.5 0 0 0-.49-.6H8.5c-.4 0-.78-.16-1.06-.44l-1-1a.5.5 0 0 0-.35-.15H3Z" opacity=".9"/></svg>
       </button>
       <button class="tb-btn" id="btn-sidebar" data-i18n-title="ttSidebar" title="목차 (Ctrl+B)">
@@ -33,7 +33,7 @@
       <button class="tb-btn" id="btn-search" data-i18n-title="ttFind" title="찾기 (Ctrl+F)">
         <svg viewBox="0 0 16 16" width="15" height="15"><path fill="currentColor" d="M11.7 10.3a5.5 5.5 0 1 0-1.4 1.4l2.65 2.65a1 1 0 0 0 1.4-1.4L11.7 10.3ZM7 11.5a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9Z" opacity=".9" fill-rule="evenodd"/></svg>
       </button>
-      <button class="tb-btn" id="btn-pdf" data-i18n-title="ttPdf" title="PDF로 내보내기 (Ctrl+P)">
+      <button class="tb-btn" id="btn-export" data-i18n-title="ttExport" title="내보내기">
         <svg viewBox="0 0 16 16" width="15" height="15"><path fill="currentColor" d="M8 1.5c.28 0 .5.22.5.5v6.79l2.15-2.14a.5.5 0 0 1 .7.7l-3 3a.5.5 0 0 1-.7 0l-3-3a.5.5 0 1 1 .7-.7L7.5 8.79V2c0-.28.22-.5.5-.5ZM3 10.5a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-2a.5.5 0 0 1 1 0v2A1.5 1.5 0 0 1 12 14.5H4A1.5 1.5 0 0 1 2.5 13v-2a.5.5 0 0 1 .5-.5Z"/></svg>
       </button>
       <button class="tb-btn" id="btn-theme" data-i18n-title="ttTheme" title="테마 전환 (Ctrl+Shift+L)">
@@ -87,6 +87,12 @@
     </div>
   </div>
 
+  <div id="export-menu" class="hidden">
+    <button class="ex-item" id="ex-pdf" data-i18n="exportPdf">PDF로 내보내기</button>
+    <button class="ex-item" id="ex-html" data-i18n="exportHtml">HTML로 내보내기</button>
+    <button class="ex-item" id="ex-copy" data-i18n="copyRendered">서식 유지하여 복사</button>
+  </div>
+
   <div id="find-bar" class="hidden">
     <input id="find-input" type="text" data-i18n-ph="phFind" placeholder="찾기…" spellcheck="false" />
     <span id="find-count"></span>
@@ -102,6 +108,22 @@
   </div>
 
   <div id="layout">
+    <aside id="filebar" class="collapsed">
+      <div id="fb-head">
+        <span id="fb-folder" data-i18n="files">파일</span>
+        <button id="fb-open" data-i18n-title="ttOpen" title="파일 열기 (Ctrl+O)">
+          <svg viewBox="0 0 16 16" width="13" height="13"><path fill="currentColor" d="M8 3.5a.5.5 0 0 1 .5.5v3.5H12a.5.5 0 0 1 0 1H8.5V12a.5.5 0 0 1-1 0V8.5H4a.5.5 0 0 1 0-1h3.5V4a.5.5 0 0 1 .5-.5Z"/></svg>
+        </button>
+      </div>
+      <input id="fb-search" type="text" data-i18n-ph="phFbSearch" placeholder="파일 검색…" spellcheck="false" />
+      <div id="fb-tree"></div>
+      <div id="fb-results" class="hidden"></div>
+      <div id="fb-recent">
+        <div class="fb-section" data-i18n="recentFiles">최근 파일</div>
+        <ul id="fb-recent-list"></ul>
+      </div>
+    </aside>
+
     <aside id="sidebar" class="collapsed">
       <div id="outline-header" data-i18n="outline">목차</div>
       <nav id="outline"></nav>
@@ -133,6 +155,18 @@
   </footer>
 
   <div id="drop-overlay" class="hidden"><div data-i18n="dropHere">파일을 놓아서 열기</div></div>
+  <div id="img-lightbox" class="hidden"><img id="lightbox-img" alt="" draggable="false" /></div>
+
+  <div id="hl-bar" class="hidden">
+    <button class="hl-swatch" data-color="yellow" style="background:#ffd666" title="노랑"></button>
+    <button class="hl-swatch" data-color="green" style="background:#a3e0a0" title="초록"></button>
+    <button class="hl-swatch" data-color="pink" style="background:#f5aecb" title="분홍"></button>
+    <button class="hl-swatch" data-color="blue" style="background:#a3caf5" title="파랑"></button>
+    <button class="hl-remove" data-color="remove" data-i18n-title="ttHlRemove" title="형광펜 지우기">
+      <svg viewBox="0 0 16 16" width="13" height="13"><path fill="currentColor" d="M6.9 2.5a1.5 1.5 0 0 1 2.12 0l4.48 4.48a1.5 1.5 0 0 1 0 2.12l-4 4a1.5 1.5 0 0 1-1.06.44H5.2a1.5 1.5 0 0 1-1.06-.44L1.4 10.32a1.5 1.5 0 0 1 0-2.12L6.9 2.5Zm3.02 8.9L11.9 9.4 8.6 6.1 5.1 9.6l1.8 1.8h3.02ZM3.4 12.5h2l-1.5-1.5-.85.85a.5.5 0 0 0 0 .3l.35.35Z"/></svg>
+    </button>
+  </div>
+
   <div id="toast" class="hidden"></div>
 
   <script src="../node_modules/dompurify/dist/purify.min.js"></script>
