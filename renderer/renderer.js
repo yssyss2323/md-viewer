@@ -522,24 +522,33 @@
     return offs;
   }
 
-  // Whitespace-normalized copy of s (each run of whitespace → one space) with
-  // map[k] = index in s of the k-th normalized char. Lets us match the rendered
-  // selection (which differs from source in line-endings / soft wraps / spacing)
-  // against the source and still recover exact source offsets.
-  function normalizeWs(s) {
-    let norm = '';
-    const map = [];
-    let inWs = false;
-    for (let i = 0; i < s.length; i++) {
-      if (/\s/.test(s[i])) {
-        if (!inWs) { norm += ' '; map.push(i); inWs = true; }
+  // Align a block's rendered text to its markdown source, char by char, and
+  // return map[i] = source index of the i-th rendered char (or -1 if it can't
+  // be placed). Rendered text is essentially the source with markdown syntax
+  // (**, [], `, <tags>, …) removed, so we walk the source skipping those. This
+  // lets the highlighter map a selection to an exact source range even when it
+  // overlaps bold/italic/links/code — the wrapped range simply includes that
+  // syntax (e.g. **==foo==**). Whitespace is matched loosely (rendered \n / a
+  // space matches any source whitespace run) to absorb \r\n and soft wraps.
+  function alignRenderedToSource(rendered, source) {
+    const map = new Array(rendered.length).fill(-1);
+    let j = 0;
+    for (let i = 0; i < rendered.length; i++) {
+      const rc = rendered[i];
+      if (/\s/.test(rc)) {
+        let k = j;
+        while (k < source.length && !/\s/.test(source[k])) k++;
+        map[i] = k < source.length ? k : Math.max(0, source.length - 1);
+        j = k;
+        while (j < source.length && /\s/.test(source[j])) j++;
       } else {
-        norm += s[i];
-        map.push(i);
-        inWs = false;
+        let k = j;
+        while (k < source.length && source[k] !== rc) k++;
+        if (k < source.length) { map[i] = k; j = k + 1; }
+        // else leave -1: this rendered char isn't in the remaining source
       }
     }
-    return { norm, map };
+    return map;
   }
 
   // Source char range [bs, be) of the nearest block (data-line) containing node.
@@ -561,10 +570,11 @@
   // remove. Yellow uses portable ==marks==; other colors use <mark class="mk-…">.
   // Picking the same color again toggles it off.
   //
-  // The selection is mapped to the source by scoping to the block it lands in
-  // (via data-line) and matching within that block only — so a short string
-  // never highlights a different occurrence elsewhere — with whitespace
-  // normalized so \r\n / soft wraps / spacing don't cause a "not found".
+  // The selection is scoped to the block it lands in (via data-line) and mapped
+  // to an exact source range by char-aligning that block's rendered text to its
+  // source. This works even when the selection overlaps inline formatting, and
+  // uses the real selection position (not text search) so repeats never confuse
+  // it.
   async function applyHighlight(color) {
     if (state.sourceMode || !state.path) { toast(t('toastNoSelection')); return; }
     const sel = window.getSelection();
@@ -572,38 +582,54 @@
     const range = sel.getRangeAt(0);
     if (!el.content.contains(range.commonAncestorContainer)) { toast(t('toastNoSelection')); return; }
 
-    const needle = sel.toString().replace(/\s+/g, ' ').trim();
-    if (!needle) { toast(t('toastNoSelection')); return; }
-
     const block = blockSourceRange(range.startContainer);
     if (!block) { toast(t('toastHlFail')); return; }
     const raw = state.raw;
-    const blockSrc = raw.slice(block.bs, block.be);
+    const rendered = block.el.textContent;
+    const source = raw.slice(block.bs, block.be);
 
-    // Which occurrence within this block? Count matches in the block's rendered
-    // text before the selection start.
-    const selStart = textOffsetWithin(block.el, range.startContainer, range.startOffset);
-    const before = block.el.textContent.slice(0, selStart).replace(/\s+/g, ' ');
-    let occ = 0;
-    let p = 0;
-    let bhit;
-    while ((bhit = before.indexOf(needle, p)) !== -1) { occ++; p = bhit + needle.length; }
+    // Selection bounds as offsets into the block's rendered text.
+    let a = textOffsetWithin(block.el, range.startContainer, range.startOffset);
+    let b = textOffsetWithin(block.el, range.endContainer, range.endOffset);
+    if (b < a) [a, b] = [b, a];
+    b = Math.min(b, rendered.length);
+    while (a < b && /\s/.test(rendered[a])) a++; // trim whitespace at the edges
+    while (b > a && /\s/.test(rendered[b - 1])) b--;
+    if (a >= b) { toast(t('toastNoSelection')); return; }
 
-    const { norm, map } = normalizeWs(blockSrc);
-    let mIdx = -1;
-    let f = 0;
-    let c = 0;
-    while ((mIdx = norm.indexOf(needle, f)) !== -1) {
-      if (c === occ) break;
-      c++;
-      f = mIdx + needle.length;
+    const map = alignRenderedToSource(rendered, source);
+    const s0 = map[a];
+    const s1 = map[b - 1];
+    if (s0 < 0 || s1 < 0) { toast(t('toastHlFail')); return; }
+    let srcStart = block.bs + s0;
+    let srcEnd = block.bs + s1 + 1;
+    if (srcEnd <= srcStart) { toast(t('toastHlFail')); return; }
+
+    // Keep the wrapped range from splitting inline formatting, which would
+    // produce broken markup (e.g. **==bold** → literal ==). Inline code is
+    // verbatim, so wrap outside its backticks; for emphasis/strike, expand the
+    // range just enough over adjacent delimiters to keep them balanced.
+    const balanced = (s) =>
+      (s.match(/\*\*/g) || []).length % 2 === 0 &&
+      (s.replace(/\*\*/g, '').match(/\*/g) || []).length % 2 === 0 &&
+      (s.match(/~~/g) || []).length % 2 === 0 &&
+      (s.match(/`/g) || []).length % 2 === 0;
+    let codeEl = range.startContainer.nodeType === 3 ? range.startContainer.parentElement : range.startContainer;
+    codeEl = codeEl && codeEl.closest ? codeEl.closest('code') : null;
+    if (codeEl && codeEl.contains(range.endContainer) && el.content.contains(codeEl)) {
+      while (srcStart > block.bs && raw[srcStart - 1] === '`') srcStart--;
+      while (srcEnd < block.be && raw[srcEnd] === '`') srcEnd++;
+    } else if (!balanced(raw.slice(srcStart, srcEnd))) {
+      const DELIM = /[*~`]/;
+      let ls = srcStart;
+      while (ls > block.bs && DELIM.test(raw[ls - 1])) ls--;
+      let re = srcEnd;
+      while (re < block.be && DELIM.test(raw[re])) re++;
+      for (const [a2, b2] of [[ls, srcEnd], [srcStart, re], [ls, re]]) {
+        if (balanced(raw.slice(a2, b2))) { srcStart = a2; srcEnd = b2; break; }
+      }
     }
-    if (mIdx === -1) mIdx = norm.indexOf(needle); // fall back to first match
-    if (mIdx === -1) { toast(t('toastHlFail')); return; }
-
-    const srcStart = block.bs + map[mIdx];
-    const srcEnd = block.bs + map[mIdx + needle.length - 1] + 1;
-    const text = raw.slice(srcStart, srcEnd); // exact source text (may hold a soft wrap)
+    const text = raw.slice(srcStart, srcEnd); // exact source (may include inline syntax / a soft wrap)
 
     // Detect an existing wrapper around this range: == == or <mark …>.
     let wrapStart = -1;
