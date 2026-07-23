@@ -914,7 +914,7 @@
 
   async function refreshFbRecent() {
     const s = await window.api.getSettings();
-    const recent = (s.recent || []).slice(0, 12);
+    const recent = (s.recent || []).slice(0, 10);
     el.fbRecentList.innerHTML = '';
     for (const p of recent) {
       const li = document.createElement('li');

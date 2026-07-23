@@ -464,8 +464,10 @@ body.platform-darwin #tb-logo { margin-left: 0; }
   width: var(--sidebar-w);
   flex-shrink: 0;
   border-right: 1px solid var(--border);
-  overflow-y: auto;
-  overflow-x: hidden;
+  /* The bar itself doesn't scroll — the tree area does (see #fb-tree). This
+     keeps the "recent files" section pinned at the bottom instead of letting a
+     long tree overflow and overlap it. */
+  overflow: hidden;
   /* Clear the fixed status bar so the last recent file isn't hidden behind it. */
   padding: 8px 6px calc(var(--statusbar-h) + 14px);
   display: flex;
@@ -475,6 +477,7 @@ body.platform-darwin #tb-logo { margin-left: 0; }
   -webkit-user-select: none;
   user-select: none;
 }
+#fb-head, #fb-search { flex-shrink: 0; }
 /* The search field is the one place text selection/caret makes sense. */
 #fb-search {
   -webkit-user-select: text;
@@ -529,7 +532,8 @@ body.platform-darwin #tb-logo { margin-left: 0; }
 }
 #fb-search:focus { border-color: var(--accent); }
 
-#fb-tree, #fb-results { flex: 1; min-height: 40px; }
+/* The tree / search results take the middle space and scroll internally. */
+#fb-tree, #fb-results { flex: 1 1 auto; min-height: 40px; overflow-y: auto; overflow-x: hidden; }
 
 .fb-row .fb-rel {
   flex-shrink: 1;
@@ -579,7 +583,16 @@ body.platform-darwin #tb-logo { margin-left: 0; }
 .fb-root .fb-name { font-weight: 600; color: var(--fg); }
 .fb-empty { padding: 8px 12px; font-size: 12.5px; color: var(--fg-faint); line-height: 1.5; }
 
-#fb-recent { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 8px; }
+/* Recent files: pinned at the bottom, capped so a long list can't crowd out
+   the tree; scrolls on its own if needed. */
+#fb-recent {
+  flex-shrink: 0;
+  max-height: 42%;
+  overflow-y: auto;
+  margin-top: 12px;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
 .fb-section {
   font-size: 11px;
   font-weight: 600;
