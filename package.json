@@ -1,7 +1,7 @@
 {
   "name": "mdviewr",
   "productName": "Mymd",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "A clean, distraction-free markdown viewer",
   "main": "main.js",
   "scripts": {
