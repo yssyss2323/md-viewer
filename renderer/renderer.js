@@ -1368,6 +1368,7 @@
 
   let findOpen = false;
   let findRanges = [];
+  let findSrc = []; // source-mode matches: [{start,end}] into the editor value
   let findIndex = -1;
   const findSupported = typeof CSS !== 'undefined' && CSS.highlights;
 
@@ -1385,6 +1386,7 @@
       CSS.highlights.delete('find-current');
     }
     findRanges = [];
+    findSrc = [];
     findIndex = -1;
   }
 
@@ -1400,7 +1402,15 @@
   function runFind(query) {
     clearFind();
     const q = (query || '').toLowerCase();
-    if (!q || el.content.classList.contains('hidden')) {
+    if (!q) {
+      updateFindCount();
+      return;
+    }
+    if (state.sourceMode) {
+      runFindSource(q);
+      return;
+    }
+    if (el.content.classList.contains('hidden')) {
       updateFindCount();
       return;
     }
@@ -1426,6 +1436,36 @@
     updateFindCount();
   }
 
+  // Source (code) mode: the rendered view is hidden and text lives in a
+  // <textarea>, which the CSS Highlight API can't touch. Search the editor value
+  // and reveal each match with the textarea's own selection (visible even while
+  // the find box keeps focus).
+  function runFindSource(q) {
+    const text = el.editor.value.toLowerCase();
+    let from = 0;
+    let idx;
+    while ((idx = text.indexOf(q, from)) !== -1) {
+      findSrc.push({ start: idx, end: idx + q.length });
+      from = idx + q.length;
+    }
+    findIndex = findSrc.length ? 0 : -1;
+    if (findIndex >= 0) selectSourceMatch();
+    updateFindCount();
+  }
+
+  function selectSourceMatch() {
+    const m = findSrc[findIndex];
+    if (!m) return;
+    el.editor.setSelectionRange(m.start, m.end);
+    // The editor uses field-sizing:content, so #content-scroll (not the textarea)
+    // scrolls. Bring the match's line to ~40% down.
+    const line = el.editor.value.slice(0, m.start).split('\n').length - 1;
+    const lh = parseFloat(getComputedStyle(el.editor).lineHeight) || 24;
+    const edTop = el.editor.getBoundingClientRect().top;
+    const scTop = el.scroll.getBoundingClientRect().top;
+    el.scroll.scrollTop += edTop + line * lh - scTop - el.scroll.clientHeight * 0.4;
+  }
+
   function paintFind() {
     if (!findSupported) return;
     if (!findRanges.length) {
@@ -1449,6 +1489,13 @@
   }
 
   function moveFind(dir) {
+    if (state.sourceMode) {
+      if (!findSrc.length) return;
+      findIndex = (findIndex + dir + findSrc.length) % findSrc.length;
+      selectSourceMatch();
+      updateFindCount();
+      return;
+    }
     if (!findRanges.length) return;
     findIndex = (findIndex + dir + findRanges.length) % findRanges.length;
     paintFind();
@@ -1461,7 +1508,8 @@
       el.findCount.textContent = '';
       return;
     }
-    el.findCount.textContent = findRanges.length ? `${findIndex + 1}/${findRanges.length}` : t('findNone');
+    const total = state.sourceMode ? findSrc.length : findRanges.length;
+    el.findCount.textContent = total ? `${findIndex + 1}/${total}` : t('findNone');
   }
 
   el.findInput.addEventListener('input', () => runFind(el.findInput.value));
