@@ -105,6 +105,7 @@
     "highlight.js": "^11.11.1",
     "katex": "^0.17.0",
     "markdown-it": "^14.3.0",
+    "markdown-it-cjk-friendly": "^2.0.2",
     "markdown-it-mark": "^4.0.0",
     "markdown-it-task-lists": "^2.1.1",
     "markdown-it-texmath": "^1.0.0",

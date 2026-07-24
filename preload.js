@@ -6,6 +6,7 @@ const katex = require('katex');
 const texmath = require('markdown-it-texmath');
 const taskLists = require('markdown-it-task-lists');
 const mark = require('markdown-it-mark');
+const cjkFriendly = require('markdown-it-cjk-friendly').default;
 
 const md = require('markdown-it')({
   html: true,
@@ -26,6 +27,10 @@ const md = require('markdown-it')({
 
 md.use(taskLists, { label: true, enabled: true });
 md.use(mark); // ==highlight== → <mark>
+// CommonMark's emphasis flanking fails next to CJK (e.g. **"..."**해 or
+// ==…)==엔 render literally). This makes **bold**/*italic*/==mark== work when
+// they touch Korean text.
+md.use(cjkFriendly);
 
 // Tag each block with its source line range (data-line / data-line-end) so the
 // renderer can map a rendered-text selection back to an exact source offset for
