@@ -1117,6 +1117,7 @@
     // Manual edits use the textarea's own undo; drop the rendered-view history.
     undoStack = [];
     redoStack = [];
+    if (findOpen) runFind(el.findInput.value); // keep the source find backdrop in sync
   });
 
   el.editor.addEventListener('keydown', (e) => {
@@ -1388,6 +1389,8 @@
     findRanges = [];
     findSrc = [];
     findIndex = -1;
+    const hl = $('#source-highlight');
+    if (hl) hl.textContent = '';
   }
 
   function closeFind() {
@@ -1449,8 +1452,31 @@
       from = idx + q.length;
     }
     findIndex = findSrc.length ? 0 : -1;
+    paintSourceFind();
     if (findIndex >= 0) selectSourceMatch();
     updateFindCount();
+  }
+
+  // Render the source text with <mark>s in the backdrop layer behind the
+  // (transparent) textarea, so every match is highlighted, current one emphasized.
+  function paintSourceFind() {
+    const hl = $('#source-highlight');
+    if (!hl) return;
+    if (!findOpen || !state.sourceMode || !findSrc.length) {
+      hl.textContent = '';
+      return;
+    }
+    const text = el.editor.value;
+    const esc = (s) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    let out = '';
+    let pos = 0;
+    findSrc.forEach((m, i) => {
+      out += esc(text.slice(pos, m.start));
+      out += `<mark${i === findIndex ? ' class="cur"' : ''}>${esc(text.slice(m.start, m.end))}</mark>`;
+      pos = m.end;
+    });
+    out += esc(text.slice(pos));
+    hl.innerHTML = out;
   }
 
   function selectSourceMatch() {
@@ -1493,6 +1519,7 @@
       if (!findSrc.length) return;
       findIndex = (findIndex + dir + findSrc.length) % findSrc.length;
       selectSourceMatch();
+      paintSourceFind();
       updateFindCount();
       return;
     }

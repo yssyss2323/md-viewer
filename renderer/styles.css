@@ -652,28 +652,61 @@ body.platform-darwin #tb-logo { margin-left: 0; }
 
 /* ---------- Source editor ---------- */
 #source-view {
+  position: relative;
   max-width: var(--content-w);
   margin: 0 auto;
   padding: 32px 44px 110px;
 }
 
+/* The textarea and the find-highlight backdrop must share EXACTLY the same text
+   metrics so the highlighted rectangles line up with the characters. */
+#source-editor,
+#source-highlight {
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.75;
+  letter-spacing: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
 #source-editor {
+  position: relative;
+  z-index: 1;
   display: block;
   width: 100%;
   min-height: calc(100vh - var(--titlebar-h) - var(--statusbar-h) - 80px);
   field-sizing: content;
-  border: none;
   outline: none;
   resize: none;
   background: transparent;
   color: var(--fg);
   caret-color: var(--accent);
-  font-family: var(--font-mono);
-  font-size: 13.5px;
-  line-height: 1.75;
-  white-space: pre-wrap;
-  word-break: break-word;
 }
+
+/* Backdrop that renders the same text with <mark>s behind the transparent
+   textarea, so Find can highlight every match in source mode. */
+#source-highlight {
+  position: absolute;
+  top: 32px;
+  left: 44px;
+  right: 44px;
+  z-index: 0;
+  color: transparent;
+  pointer-events: none;
+  overflow: hidden;
+}
+#source-highlight mark {
+  background: rgba(255, 214, 102, 0.45);
+  color: transparent;
+  border-radius: 2px;
+}
+#source-highlight mark.cur { background: #ff9a3c; }
+body[data-theme="dark"] #source-highlight mark { background: rgba(210, 160, 40, 0.42); }
+body[data-theme="dark"] #source-highlight mark.cur { background: #e0902c; }
 
 /* ---------- Welcome ---------- */
 #welcome {
